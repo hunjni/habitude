@@ -1,5 +1,10 @@
 // Core domain types for the Habitude Checklist plugin.
-// Pure local checklist: habits + daily checks in Markdown. No network, no account.
+// Local-first: habits + daily checks in Markdown. The optional AI coach is
+// BYOK — the user's own Gemini key, stored on-device, calling Google
+// directly. No Habitude backend, no account, no sync.
+
+import { DEFAULT_COACH_MODEL } from './coach/gemini';
+import type { CoachLanguage } from './coach/prompt';
 
 export interface Habit {
 	/** URL-safe unique id, also used as the section heading in Habits.md */
@@ -29,9 +34,18 @@ export interface PluginSettings {
 	dataFolder: string;
 	/** 0 = Sunday, 1 = Monday */
 	weekStart: 0 | 1;
+	/** BYOK Gemini key for the AI coach. Empty = coach disabled. Stored on-device only. */
+	geminiApiKey: string;
+	/** model id used for coaching */
+	coachModel: string;
+	/** reply language for the coach */
+	coachLanguage: CoachLanguage;
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
 	dataFolder: 'Habitude',
 	weekStart: 1,
+	geminiApiKey: '',
+	coachModel: DEFAULT_COACH_MODEL,
+	coachLanguage: 'auto',
 };

@@ -5,6 +5,7 @@ import { Notice, Plugin } from 'obsidian';
 import { DEFAULT_SETTINGS, HabitudeSettingTab, type PluginSettings } from './settings';
 import { HabitStore } from './store';
 import { CHECKLIST_VIEW_TYPE, ChecklistView } from './ui/checklist-view';
+import { COACH_VIEW_TYPE, CoachView } from './ui/coach-view';
 import { registerCommands } from './commands';
 import { todayKey } from './utils/dates';
 
@@ -23,8 +24,14 @@ export default class HabitudePlugin extends Plugin {
 			}),
 		);
 
+		this.registerView(COACH_VIEW_TYPE, (leaf) => new CoachView(leaf, this));
+
 		this.addRibbonIcon('check-square', 'Habitude checklist', () => {
 			void this.activateView();
+		});
+
+		this.addRibbonIcon('sparkles', 'Habitude AI coach', () => {
+			void this.activateCoachView();
 		});
 
 		this.statusBarEl = this.addStatusBarItem();
@@ -68,6 +75,22 @@ export default class HabitudePlugin extends Plugin {
 		void workspace.revealLeaf(leaf);
 	}
 
+	async activateCoachView(): Promise<void> {
+		const { workspace } = this.app;
+		const existing = workspace.getLeavesOfType(COACH_VIEW_TYPE)[0];
+		if (existing) {
+			void workspace.revealLeaf(existing);
+			return;
+		}
+		const leaf = workspace.getRightLeaf(false);
+		if (!leaf) {
+			new Notice('Could not open the AI coach.');
+			return;
+		}
+		await leaf.setViewState({ type: COACH_VIEW_TYPE, active: true });
+		void workspace.revealLeaf(leaf);
+	}
+
 	/** Lazily created store bound to the configured data folder. */
 	getStore(): HabitStore {
 		if (!this.store) {
@@ -76,11 +99,17 @@ export default class HabitudePlugin extends Plugin {
 		return this.store;
 	}
 
-	/** Re-render every open checklist view (e.g. after data-folder change). */
+	/** Re-render every open checklist and coach view (e.g. after a settings change). */
 	refreshViews(): void {
 		for (const leaf of this.app.workspace.getLeavesOfType(CHECKLIST_VIEW_TYPE)) {
 			const view = leaf.view;
 			if (view instanceof ChecklistView) {
+				void view.render();
+			}
+		}
+		for (const leaf of this.app.workspace.getLeavesOfType(COACH_VIEW_TYPE)) {
+			const view = leaf.view;
+			if (view instanceof CoachView) {
 				void view.render();
 			}
 		}

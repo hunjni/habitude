@@ -7,6 +7,7 @@ export default defineConfig(
 		'node_modules',
 		'dist',
 		'test/stress/dist',
+		'test/coach/dist',
 		'esbuild.config.mjs',
 		'version-bump.mjs',
 		'versions.json',

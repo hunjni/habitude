@@ -22,13 +22,15 @@ Both files are human-readable and hand-editable. The plugin re-reads them on eve
 - **Weekly review** (command *Open weekly review* or the button in the view): per-habit completion bars, total checks.
 - **Command** *Toggle today for a habit*: quick toggle from the command palette.
 - **Status bar**: today's progress (`✓ 3/5 today`).
-- **Settings** (`Settings → Habitude checklist`): data folder, week start day (Mon/Sun).
-- **Get AI coaching** footer button: opens `https://habitude.ai` in your browser. This is the only outbound link in the plugin — no API calls, no tokens, no data leaves your vault.
+- **AI coach** (ribbon icon, or command *Open AI coach*): chat with a coach that knows your habits — your streaks, weekly rates, and weekday patterns are shared with the model automatically as statistics. Free with your own Gemini API key (BYOK).
+- **Settings** (`Settings → Habitude checklist`): data folder, week start day (Mon/Sun), optional Gemini API key, coach model, coach language.
+- **Get AI coaching** footer button: opens `https://habitude.ai` in your browser.
 
 ## Privacy
 
-- **Fully local. Zero network requests.** The plugin never calls any API, opens no connections, and holds no credentials. Your habits live in your vault as plain Markdown.
-- The only thing that ever leaves Obsidian is you: the *Get AI coaching* button opens `https://habitude.ai` in your browser.
+- **Checklist: fully local.** Habit tracking never calls any API, opens no connections, and holds no credentials. Your habits live in your vault as plain Markdown.
+- **AI coach: opt-in BYOK.** The coach only activates if you paste your own Gemini API key (free from Google AI Studio). The key is stored only on this device, and requests go **directly to Google AI** — never to Habitude servers. Each message carries your habit *statistics* (streaks, rates, patterns), never your raw note text.
+- The only other thing that ever leaves Obsidian is you: the *Get AI coaching* button opens `https://habitude.ai` in your browser.
 
 ## Development
 

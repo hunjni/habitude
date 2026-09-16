@@ -3,6 +3,7 @@
 import { Notice, SuggestModal } from 'obsidian';
 import type HabitudePlugin from '../main';
 import { CHECKLIST_VIEW_TYPE } from '../ui/checklist-view';
+import { COACH_VIEW_TYPE } from '../ui/coach-view';
 import { ReviewModal } from '../ui/review-modal';
 import { addDays, startOfWeek, todayKey } from '../utils/dates';
 
@@ -19,6 +20,22 @@ async function openChecklist(plugin: HabitudePlugin): Promise<void> {
 		return;
 	}
 	await leaf.setViewState({ type: CHECKLIST_VIEW_TYPE, active: true });
+	void workspace.revealLeaf(leaf);
+}
+
+async function openCoach(plugin: HabitudePlugin): Promise<void> {
+	const { workspace } = plugin.app;
+	const existing = workspace.getLeavesOfType(COACH_VIEW_TYPE)[0];
+	if (existing) {
+		void workspace.revealLeaf(existing);
+		return;
+	}
+	const leaf = workspace.getRightLeaf(false);
+	if (!leaf) {
+		new Notice('Could not open the AI coach.');
+		return;
+	}
+	await leaf.setViewState({ type: COACH_VIEW_TYPE, active: true });
 	void workspace.revealLeaf(leaf);
 }
 
@@ -56,6 +73,12 @@ export function registerCommands(plugin: HabitudePlugin): void {
 		id: 'open-checklist',
 		name: 'Open checklist',
 		callback: () => void openChecklist(plugin),
+	});
+
+	plugin.addCommand({
+		id: 'open-coach',
+		name: 'Open AI coach',
+		callback: () => void openCoach(plugin),
 	});
 
 	plugin.addCommand({

@@ -131,3 +131,7 @@ export class SuggestModal<T = unknown> {
 	declare protected itemType: T;
 }
 export class Plugin {}
+/** Not implemented in the mock — tests inject their own transport. */
+export function requestUrl(): Promise<never> {
+	return Promise.reject(new Error('requestUrl is not mocked; inject a request function'));
+}
