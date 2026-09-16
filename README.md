@@ -1,0 +1,45 @@
+# Habitude Checklist — Obsidian Plugin
+
+A 7-day habit checklist for Obsidian: add habits, tap days to check them off, track streaks and weekly completion rates, and open a weekly review. Markdown-native — your data lives in your vault as plain markdown.
+
+## Data layout (in your vault)
+
+Under the configured data folder (default `Habitude/`):
+
+```
+Habitude/
+  Habits.md            # habit registry, one "## <id>" section per habit
+  Log/
+    2026-09-15.md      # daily log: "- [x] morning-run <!-- Morning run -->"
+```
+
+Both files are human-readable and hand-editable. The plugin re-reads them on every render (and on vault `modify` events), so edits you make directly in the notes are picked up automatically.
+
+## Features
+
+- **Checklist view** (ribbon icon, or command *Open checklist*): habits × 7-day grid, click a cell to toggle. Week navigation (‹ ›), per-habit streak (🔥) and weekly %.
+- **Add habits** inline; **archive** via the ⋯ menu next to the habit name.
+- **Weekly review** (command *Open weekly review* or the button in the view): per-habit completion bars, total checks.
+- **Command** *Toggle today for a habit*: quick toggle from the command palette.
+- **Status bar**: today's progress (`✓ 3/5 today`).
+- **Settings** (`Settings → Habitude checklist`): data folder, week start day (Mon/Sun).
+- **Get AI coaching** footer button: opens `https://habitude.ai` in your browser. This is the only outbound link in the plugin — no API calls, no tokens, no data leaves your vault.
+
+## Privacy
+
+- **Fully local. Zero network requests.** The plugin never calls any API, opens no connections, and holds no credentials. Your habits live in your vault as plain Markdown.
+- The only thing that ever leaves Obsidian is you: the *Get AI coaching* button opens `https://habitude.ai` in your browser.
+
+## Development
+
+```bash
+npm install
+npm run dev      # watch mode
+npm run build    # production: tsc + esbuild → main.js
+```
+
+Manual test install: copy `main.js`, `manifest.json`, `styles.css` into `<Vault>/.obsidian/plugins/habitude-checklist/`, reload Obsidian, enable under **Settings → Community plugins**.
+
+## Funnel
+
+See [FUNNEL.md](./FUNNEL.md) for how this plugin fits the Habitude acquisition funnel (Stage 0 wedge → connect → digital twin → premium).

@@ -1,0 +1,226 @@
+/* Habitude Checklist plugin styles. Uses Obsidian CSS variables so the
+   plugin follows the user's theme (light/dark) automatically. */
+
+.habitude-checklist {
+	padding: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	height: 100%;
+	overflow-y: auto;
+}
+
+.habitude-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.habitude-week-label {
+	font-weight: 600;
+	font-size: 1.05em;
+}
+
+.habitude-nav-btn,
+.habitude-review-btn {
+	cursor: pointer;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+	color: var(--text-normal);
+	border-radius: 6px;
+	padding: 4px 10px;
+}
+
+.habitude-nav-btn:hover,
+.habitude-review-btn:hover {
+	background: var(--background-modifier-hover);
+}
+
+.habitude-add-row {
+	display: flex;
+	gap: 8px;
+}
+
+.habitude-add-input {
+	flex: 1;
+	padding: 8px 10px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	background: var(--background-primary);
+	color: var(--text-normal);
+}
+
+.habitude-add-btn {
+	cursor: pointer;
+	padding: 8px 14px;
+	border: none;
+	border-radius: 6px;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	font-weight: 600;
+}
+
+.habitude-empty {
+	color: var(--text-muted);
+}
+
+.habitude-grid {
+	width: 100%;
+	border-collapse: collapse;
+	table-layout: fixed;
+}
+
+.habitude-grid th,
+.habitude-grid td {
+	padding: 6px 4px;
+	text-align: center;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.habitude-col-habit {
+	width: 34%;
+	text-align: left !important;
+}
+
+.habitude-habit-cell {
+	text-align: left !important;
+	vertical-align: middle;
+}
+
+.habitude-habit-title {
+	font-weight: 600;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.habitude-habit-meta {
+	font-size: 0.8em;
+	color: var(--text-muted);
+}
+
+.habitude-day-name {
+	font-size: 0.75em;
+	color: var(--text-muted);
+	text-transform: uppercase;
+}
+
+.habitude-day-num {
+	font-weight: 600;
+}
+
+.habitude-cell.habitude-today,
+.habitude-grid th.habitude-today {
+	background: var(--background-secondary);
+}
+
+.habitude-toggle {
+	cursor: pointer;
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	border: 2px solid var(--background-modifier-border);
+	background: transparent;
+	color: var(--text-on-accent);
+	font-size: 15px;
+	line-height: 1;
+	padding: 0;
+}
+
+.habitude-toggle:hover {
+	border-color: var(--interactive-accent);
+}
+
+.habitude-toggle.habitude-checked {
+	background: var(--interactive-accent);
+	border-color: var(--interactive-accent);
+}
+
+.habitude-footer {
+	margin-top: auto;
+	padding-top: 12px;
+	border-top: 1px solid var(--background-modifier-border);
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.habitude-coach-btn {
+	cursor: pointer;
+	padding: 10px;
+	border: none;
+	border-radius: 8px;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	font-weight: 700;
+	font-size: 1em;
+}
+
+.habitude-footnote {
+	font-size: 0.78em;
+	color: var(--text-muted);
+	margin: 0;
+}
+
+/* Connect modal (Stage 1) */
+.habitude-connect-modal ul {
+	padding-left: 20px;
+	margin: 8px 0 16px;
+}
+
+.habitude-connect-modal li {
+	margin-bottom: 6px;
+}
+
+.habitude-connect-code {
+	font-size: 1.8em;
+	font-weight: 700;
+	letter-spacing: 0.2em;
+	text-align: center;
+	margin: 12px 0;
+}
+
+.habitude-connect-hint {
+	color: var(--text-muted);
+	font-size: 0.9em;
+}
+
+.habitude-connect-warn {
+	color: var(--text-warning, var(--text-muted));
+	font-size: 0.9em;
+}
+
+/* Weekly review modal */
+.habitude-review-row {
+	margin-bottom: 12px;
+}
+
+.habitude-review-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	margin-bottom: 4px;
+}
+
+.habitude-review-head span {
+	color: var(--text-muted);
+	font-size: 0.85em;
+}
+
+.habitude-bar {
+	height: 8px;
+	border-radius: 4px;
+	background: var(--background-secondary);
+	overflow: hidden;
+}
+
+.habitude-bar-fill {
+	height: 100%;
+	background: var(--interactive-accent);
+	border-radius: 4px;
+}
+
+.habitude-review-total {
+	font-weight: 600;
+	margin-top: 16px;
+}
