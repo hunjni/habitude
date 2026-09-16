@@ -2,6 +2,18 @@
 
 A 7-day habit checklist for Obsidian: add habits, tap days to check them off, track streaks and weekly completion rates, and open a weekly review. Markdown-native — your data lives in your vault as plain markdown.
 
+## Screenshots
+
+![Checklist view](assets/checklist.png)
+
+*The 7-day checklist grid next to your plain-Markdown habit data. Click a cell to toggle — streaks and weekly rates update live:*
+
+![Checklist demo](assets/demo.gif)
+
+![AI coach](assets/coach.png)
+
+*The AI coach greets you with your own stats and chats about your habits — free with your own Gemini API key (BYOK).*
+
 ## Data layout (in your vault)
 
 Under the configured data folder (default `Habitude/`):
@@ -23,6 +35,7 @@ Both files are human-readable and hand-editable. The plugin re-reads them on eve
 - **Command** *Toggle today for a habit*: quick toggle from the command palette.
 - **Status bar**: today's progress (`✓ 3/5 today`).
 - **AI coach** (ribbon icon, or command *Open AI coach*): chat with a coach that knows your habits — your streaks, weekly rates, and weekday patterns are shared with the model automatically as statistics. Free with your own Gemini API key (BYOK).
+  - See it in action: [coach greeting](#screenshots) · [checklist demo](assets/demo.gif)
 - **Settings** (`Settings → Habitude checklist`): data folder, week start day (Mon/Sun), optional Gemini API key, coach model, coach language.
 - **Get AI coaching** footer button: opens `https://habitude.ai` in your browser.
 
