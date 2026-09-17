@@ -9,6 +9,7 @@
 // requestUrl is injectable so unit tests never touch the network.
 
 import { requestUrl } from 'obsidian';
+import { t } from '../i18n';
 
 export const DEFAULT_COACH_MODEL = 'gemini-2.5-flash';
 const API_HOST = 'https://generativelanguage.googleapis.com';
@@ -83,45 +84,42 @@ export async function chatCompletion(
 				? (e as { status: number }).status
 				: 0;
 		if (status === 400 || status === 401 || status === 403) {
-			throw new CoachError(
-				'auth',
-				'That API key was rejected or lacks access. Double-check it in Settings → Habitude checklist.',
-			);
+			throw new CoachError('auth', t('coach.error.authRejected'));
 		}
 		if (status === 429) {
-			throw new CoachError('quota', 'Rate limit hit (free tier). Wait a minute and try again.');
+			throw new CoachError('quota', t('coach.error.rateLimit'));
 		}
 		if (status >= 400) {
-			throw new CoachError('api', `Google AI returned an error (status ${status}). Please try again.`);
+			throw new CoachError('api', t('coach.error.httpError', { status }));
 		}
-		throw new CoachError('network', `Could not reach Google AI. Check your connection. (${String(e)})`);
+		throw new CoachError('network', t('coach.error.network', { detail: String(e) }));
 	}
 
 	let data: GenerateContentResponse;
 	try {
 		data = JSON.parse(raw) as GenerateContentResponse;
 	} catch {
-		throw new CoachError('api', 'Got an unreadable response from the model. Please try again.');
+		throw new CoachError('api', t('coach.error.unreadable'));
 	}
 
 	if (data.error) {
 		const code = data.error.code ?? 0;
 		const msg = data.error.message ?? 'Unknown error';
 		if (code === 400 && /api key/i.test(msg)) {
-			throw new CoachError('auth', 'That API key was rejected. Double-check it in Settings → Habitude checklist.');
+			throw new CoachError('auth', t('coach.error.authRejected'));
 		}
 		if (code === 401 || code === 403) {
-			throw new CoachError('auth', 'The API key is invalid or lacks access. Check it in Settings → Habitude checklist.');
+			throw new CoachError('auth', t('coach.error.authInvalid'));
 		}
 		if (code === 429) {
-			throw new CoachError('quota', 'Rate limit hit (free tier). Wait a minute and try again.');
+			throw new CoachError('quota', t('coach.error.rateLimit'));
 		}
-		throw new CoachError('api', `Model error: ${msg}`);
+		throw new CoachError('api', t('coach.error.modelError', { detail: msg }));
 	}
 
 	const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
 	if (!text.trim()) {
-		throw new CoachError('api', 'The model returned an empty reply. Please try again.');
+		throw new CoachError('api', t('coach.error.emptyReply'));
 	}
 	return text.trim();
 }
