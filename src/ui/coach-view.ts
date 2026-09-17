@@ -7,6 +7,7 @@
 // Habitude coaching persona.
 
 import { ItemView, MarkdownRenderer, Notice, WorkspaceLeaf } from 'obsidian';
+import { t } from '../i18n';
 import type HabitudePlugin from '../main';
 import { buildTwinLiteContext } from '../coach/context';
 import { DEFAULT_COACH_MODEL, chatCompletion, CoachError, type ChatMessage } from '../coach/gemini';
@@ -32,7 +33,7 @@ export class CoachView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return 'Habitude AI coach';
+		return t('view.coach.title');
 	}
 
 	getIcon(): string {
@@ -58,28 +59,28 @@ export class CoachView extends ItemView {
 
 	private renderSetup(container: HTMLElement): void {
 		const wrap = container.createDiv({ cls: 'habitude-coach-setup' });
-		wrap.createEl('h3', { text: 'AI coach — free with your own key' });
+		wrap.createEl('h3', { text: t('coach.setupTitle') });
 		wrap.createEl('p', {
-			text: 'Bring a free Gemini API key and chat with a coach that knows your habits — your streaks, weekly rates, and weak days are shared with the model automatically as statistics.',
+			text: t('coach.setupDesc'),
 		});
 		const steps = wrap.createEl('ol');
 		const li1 = steps.createEl('li');
-		li1.appendText('Get a free key at ');
-		const link = li1.createEl('a', { text: 'Google AI Studio', href: AI_STUDIO_URL });
+		li1.appendText(t('coach.setupStep1Prefix'));
+		const link = li1.createEl('a', { text: t('coach.setupStep1Link'), href: AI_STUDIO_URL });
 		link.setAttr('target', '_blank');
-		li1.appendText('.');
-		steps.createEl('li', { text: 'Paste it below. It stays on this device — it is only ever sent to Google, never to Habitude.' });
+		li1.appendText(t('coach.setupStep1Suffix'));
+		steps.createEl('li', { text: t('coach.setupStep2') });
 
 		const input = wrap.createEl('input', {
-			attr: { type: 'password', placeholder: 'Paste Gemini API key' },
+			attr: { type: 'password', placeholder: t('coach.keyPlaceholder') },
 			cls: 'habitude-coach-key',
 		});
 		const row = wrap.createDiv({ cls: 'habitude-coach-row' });
-		const save = row.createEl('button', { text: 'Save key & start', cls: 'mod-cta' });
+		const save = row.createEl('button', { text: t('coach.saveKey'), cls: 'mod-cta' });
 		save.addEventListener('click', () => {
 			const key = input.value.trim();
 			if (!key) {
-				new Notice('Paste your Gemini API key first.');
+				new Notice(t('coach.pasteKeyFirst'));
 				return;
 			}
 			this.plugin.settings.geminiApiKey = key;
@@ -94,8 +95,8 @@ export class CoachView extends ItemView {
 
 	private async renderChat(container: HTMLElement): Promise<void> {
 		const header = container.createDiv({ cls: 'habitude-coach-header' });
-		header.createEl('strong', { text: 'AI Coach' });
-		const newChat = header.createEl('button', { text: 'New chat' });
+		header.createEl('strong', { text: t('coach.headerTitle') });
+		const newChat = header.createEl('button', { text: t('coach.newChat') });
 		newChat.addEventListener('click', () => {
 			this.messages = [];
 			this.greeted = false;
@@ -114,7 +115,7 @@ export class CoachView extends ItemView {
 				this.messages.push({ role: 'model', text: greeting });
 				this.pushMessage(log, 'model', greeting);
 			} catch {
-				const fallback = "Hi, I'm your Habitude Coach. What's on your mind?";
+				const fallback = t('coach.fallbackGreeting');
 				this.messages.push({ role: 'model', text: fallback });
 				this.pushMessage(log, 'model', fallback);
 			}
@@ -125,10 +126,10 @@ export class CoachView extends ItemView {
 
 		const composer = container.createDiv({ cls: 'habitude-coach-composer' });
 		const input = composer.createEl('textarea', {
-			attr: { rows: '2', placeholder: 'Ask your coach…' },
+			attr: { rows: '2', placeholder: t('coach.inputPlaceholder') },
 			cls: 'habitude-coach-input',
 		});
-		const send = composer.createEl('button', { text: 'Send', cls: 'mod-cta' });
+		const send = composer.createEl('button', { text: t('coach.send'), cls: 'mod-cta' });
 
 		const doSend = () => void this.send(log, input, send);
 		send.addEventListener('click', doSend);
@@ -141,9 +142,9 @@ export class CoachView extends ItemView {
 
 		const foot = container.createDiv({ cls: 'habitude-coach-foot' });
 		foot.createEl('small', {
-			text: 'Your key and chats stay on this device. Requests go directly to Google AI.',
+			text: t('coach.footnote'),
 		});
-		const clear = foot.createEl('a', { text: 'Remove key', href: '#' });
+		const clear = foot.createEl('a', { text: t('coach.removeKey'), href: '#' });
 		clear.addEventListener('click', (e) => {
 			e.preventDefault();
 			this.plugin.settings.geminiApiKey = '';
@@ -168,7 +169,7 @@ export class CoachView extends ItemView {
 		if (!text || this.sending) return;
 		const key = this.plugin.settings.geminiApiKey;
 		if (!key) {
-			new Notice('Add your Gemini API key first.');
+			new Notice(t('coach.addKeyFirst'));
 			return;
 		}
 		this.sending = true;
@@ -176,7 +177,7 @@ export class CoachView extends ItemView {
 		input.value = '';
 		this.pushMessage(log, 'user', text);
 		const typing = log.createDiv({ cls: 'habitude-coach-msg habitude-coach-model habitude-coach-typing' });
-		typing.setText('Coach is thinking…');
+		typing.setText(t('coach.thinking'));
 		log.scrollTop = log.scrollHeight;
 
 		try {
@@ -195,7 +196,7 @@ export class CoachView extends ItemView {
 			this.pushMessage(log, 'model', reply);
 		} catch (e) {
 			typing.remove();
-			const msg = e instanceof CoachError ? e.message : 'Something went wrong. Please try again.';
+			const msg = e instanceof CoachError ? e.message : t('coach.genericError');
 			const err = log.createDiv({ cls: 'habitude-coach-msg habitude-coach-error' });
 			err.setText(msg);
 			log.scrollTop = log.scrollHeight;

@@ -2,6 +2,7 @@
 // local progress graphs, and an opt-in share button.
 
 import { ItemView, Menu, Notice, WorkspaceLeaf } from 'obsidian';
+import { t } from '../i18n';
 import type { HabitStore } from '../store';
 import type { Habit } from '../types';
 import { COACHING_URL } from '../types';
@@ -42,7 +43,7 @@ export class ChecklistView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return 'Habitude checklist';
+		return t('view.checklist.title');
 	}
 
 	getIcon(): string {
@@ -78,21 +79,21 @@ export class ChecklistView extends ItemView {
 			void this.render();
 		};
 		header.createDiv({ cls: 'habitude-spacer' });
-		const reviewBtn = header.createEl('button', { text: 'Weekly review', cls: 'habitude-review-btn' });
+		const reviewBtn = header.createEl('button', { text: t('checklist.weeklyReview'), cls: 'habitude-review-btn' });
 		reviewBtn.onclick = () => new ReviewModal(this.app, store, weekKeys).open();
 
 		// Add-habit row
 		const addRow = container.createDiv({ cls: 'habitude-add-row' });
 		const input = addRow.createEl('input', {
 			cls: 'habitude-add-input',
-			attr: { placeholder: 'New habit… (enter to add)', type: 'text' },
+			attr: { placeholder: t('checklist.newHabitPlaceholder'), type: 'text' },
 		});
-		const addBtn = addRow.createEl('button', { text: 'Add', cls: 'habitude-add-btn' });
+		const addBtn = addRow.createEl('button', { text: t('checklist.add'), cls: 'habitude-add-btn' });
 		const doAdd = async () => {
 			const title = input.value.trim();
 			if (!title) return;
 			await store.addHabit(title);
-			new Notice(`Habit added: ${title}`);
+			new Notice(t('checklist.habitAdded', { title }));
 			void this.render();
 		};
 		addBtn.onclick = () => void doAdd();
@@ -110,8 +111,8 @@ export class ChecklistView extends ItemView {
 		if (seq !== this.renderSeq) return; // superseded while loading
 		if (habits.length === 0) {
 			const empty = container.createDiv({ cls: 'habitude-empty' });
-			empty.createEl('p', { text: 'No habits yet.' });
-			empty.createEl('p', { text: 'Add your first habit above — e.g. "morning run".' });
+			empty.createEl('p', { text: t('checklist.emptyTitle') });
+			empty.createEl('p', { text: t('checklist.emptyHint') });
 		}
 
 		// Grid
@@ -141,14 +142,14 @@ export class ChecklistView extends ItemView {
 			const menuBtn = titleRow.createEl('button', {
 				text: '\u22EF',
 				cls: 'habitude-menu-btn',
-				attr: { 'aria-label': 'Habit options' },
+				attr: { 'aria-label': t('checklist.habitOptions') },
 			});
 			menuBtn.onclick = (e) => {
 				const menu = new Menu();
 				menu.addItem((item) =>
-					item.setTitle('Archive habit').onClick(() => {
+					item.setTitle(t('checklist.archiveHabit')).onClick(() => {
 						void store.archiveHabit(habit.id).then(() => {
-							new Notice('Habit archived: ' + habit.title);
+							new Notice(t('checklist.habitArchived', { title: habit.title }));
 							void this.render();
 						});
 					}),
@@ -163,13 +164,13 @@ export class ChecklistView extends ItemView {
 				const btn = td.createEl('button', {
 					text: checked ? '✓' : '',
 					cls: 'habitude-toggle' + (checked ? ' habitude-checked' : ''),
-					attr: { 'aria-label': `${habit.title} on ${key}` },
+					attr: { 'aria-label': t('checklist.toggleAria', { title: habit.title, date: key }) },
 				});
 				btn.onclick = () => {
 					void store
 						.setCheck(key, habit.id, habit.title, !checked)
 						.then(() => this.render())
-						.catch(() => new Notice('Could not save the check.'));
+						.catch(() => new Notice(t('checklist.saveCheckFailed')));
 				};
 			}
 		}
@@ -177,13 +178,13 @@ export class ChecklistView extends ItemView {
 		// Graphs section: populated asynchronously once 60 days of checks load.
 		// 100% local SVG rendering — no network involved.
 		const graphsSection = container.createDiv({ cls: 'habitude-graphs' });
-		graphsSection.createEl('h3', { text: 'Progress', cls: 'habitude-graphs-title' });
+		graphsSection.createEl('h3', { text: t('checklist.progress'), cls: 'habitude-graphs-title' });
 		const graphsBody = graphsSection.createDiv({ cls: 'habitude-graphs-body' });
 
 		// Share row: explicit opt-in button. Nothing is sent unless clicked.
 		const shareRow = graphsSection.createDiv({ cls: 'habitude-share-row' });
 		const shareBtn = shareRow.createEl('button', {
-			text: '📤 Share progress',
+			text: t('checklist.shareProgress'),
 			cls: 'habitude-share-btn',
 		});
 		shareBtn.onclick = () => {
@@ -197,7 +198,7 @@ export class ChecklistView extends ItemView {
 			});
 		};
 		shareRow.createEl('p', {
-			text: '공유하기는 사용자가 직접 누를 때만 동작하며, 전송되는 데이터는 습관 제목·스트릭·완료율 같은 집계 통계뿐이고 노트 내용은 포함되지 않습니다.',
+			text: t('checklist.shareNote'),
 			cls: 'habitude-share-note',
 		});
 
@@ -224,10 +225,10 @@ export class ChecklistView extends ItemView {
 
 		// Footer: the only funnel bridge — a plain external link. No API, no token.
 		const footer = container.createDiv({ cls: 'habitude-footer' });
-		const coachBtn = footer.createEl('button', { text: '✨ Get AI coaching', cls: 'habitude-coach-btn' });
+		const coachBtn = footer.createEl('button', { text: t('checklist.getCoaching'), cls: 'habitude-coach-btn' });
 		coachBtn.onclick = () => window.open(COACHING_URL, '_blank', 'noopener');
 		footer.createEl('p', {
-			text: 'Your data stays in your vault as plain Markdown. Nothing leaves your device unless you explicitly share it.',
+			text: t('checklist.footnote'),
 			cls: 'habitude-footnote',
 		});
 	}
