@@ -1,6 +1,7 @@
 // Command registration (stable IDs — do not rename after release).
 
 import { Notice, SuggestModal } from 'obsidian';
+import { t } from '../i18n';
 import type HabitudePlugin from '../main';
 import { CHECKLIST_VIEW_TYPE } from '../ui/checklist-view';
 import { COACH_VIEW_TYPE } from '../ui/coach-view';
@@ -16,7 +17,7 @@ async function openChecklist(plugin: HabitudePlugin): Promise<void> {
 	}
 	const leaf = workspace.getRightLeaf(false);
 	if (!leaf) {
-		new Notice('Could not open the checklist view.');
+		new Notice(t('notice.cannotOpenChecklist'));
 		return;
 	}
 	await leaf.setViewState({ type: CHECKLIST_VIEW_TYPE, active: true });
@@ -32,7 +33,7 @@ async function openCoach(plugin: HabitudePlugin): Promise<void> {
 	}
 	const leaf = workspace.getRightLeaf(false);
 	if (!leaf) {
-		new Notice('Could not open the AI coach.');
+		new Notice(t('notice.cannotOpenCoach'));
 		return;
 	}
 	await leaf.setViewState({ type: COACH_VIEW_TYPE, active: true });
@@ -51,7 +52,7 @@ class HabitSuggestModal extends SuggestModal<HabitChoice> {
 		private habits: HabitChoice[],
 	) {
 		super(app);
-		this.setPlaceholder('Pick a habit to toggle for today…');
+		this.setPlaceholder(t('cmd.pickHabitPlaceholder'));
 	}
 
 	getSuggestions(query: string): HabitChoice[] {
@@ -71,19 +72,19 @@ class HabitSuggestModal extends SuggestModal<HabitChoice> {
 export function registerCommands(plugin: HabitudePlugin): void {
 	plugin.addCommand({
 		id: 'open-checklist',
-		name: 'Open checklist',
+		name: t('cmd.openChecklist'),
 		callback: () => void openChecklist(plugin),
 	});
 
 	plugin.addCommand({
 		id: 'open-coach',
-		name: 'Open AI coach',
+		name: t('cmd.openCoach'),
 		callback: () => void openCoach(plugin),
 	});
 
 	plugin.addCommand({
 		id: 'open-weekly-review',
-		name: 'Open weekly review',
+		name: t('cmd.openWeeklyReview'),
 		callback: () => {
 			const store = plugin.getStore();
 			const weekStartKey = startOfWeek(todayKey(), plugin.settings.weekStart);
@@ -94,13 +95,13 @@ export function registerCommands(plugin: HabitudePlugin): void {
 
 	plugin.addCommand({
 		id: 'toggle-today',
-		name: 'Toggle today for a habit',
+		name: t('cmd.toggleToday'),
 		callback: () => {
 			void (async () => {
 				const store = plugin.getStore();
 				const habits = await store.loadHabits();
 				if (habits.length === 0) {
-					new Notice('No habits yet. Open the checklist to add one.');
+					new Notice(t('cmd.noHabitsYet'));
 					return;
 				}
 				new HabitSuggestModal(
@@ -110,7 +111,11 @@ export function registerCommands(plugin: HabitudePlugin): void {
 							const checks = await store.loadDayChecks(todayKey());
 							const checked = checks.has(h.id);
 							await store.setCheck(todayKey(), h.id, h.title, !checked);
-							new Notice(`${h.title}: ${checked ? 'unchecked' : 'checked'} for today`);
+							new Notice(
+								checked
+									? t('cmd.toggledUnchecked', { title: h.title })
+									: t('cmd.toggledChecked', { title: h.title }),
+							);
 							plugin.refreshViews();
 						})();
 					},
