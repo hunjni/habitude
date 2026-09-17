@@ -1,5 +1,7 @@
 // Date helpers. All dates are local-time YYYY-MM-DD keys.
 
+import { getUiLocale, t, type UiLocale } from '../i18n';
+
 export function toDateKey(d: Date): string {
 	const y = d.getFullYear();
 	const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -34,14 +36,17 @@ export function startOfWeek(dateKey: string, weekStart: 0 | 1): string {
 	return toDateKey(d);
 }
 
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTH_NAMES = [
-	'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-	'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
+const DAY_NAMES: Record<UiLocale, string[]> = {
+	en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+	ko: ['일', '월', '화', '수', '목', '금', '토'],
+};
+const MONTH_NAMES: Record<UiLocale, string[]> = {
+	en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+	ko: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+};
 
 export function dayLabel(key: string): string {
-	return DAY_NAMES[parseDateKey(key).getDay()] ?? '';
+	return DAY_NAMES[getUiLocale()][parseDateKey(key).getDay()] ?? '';
 }
 
 export function dayNumber(key: string): string {
@@ -49,9 +54,15 @@ export function dayNumber(key: string): string {
 }
 
 export function weekRangeLabel(weekStartKey: string): string {
+	const locale = getUiLocale();
 	const s = parseDateKey(weekStartKey);
 	const e = parseDateKey(addDays(weekStartKey, 6));
-	return `${MONTH_NAMES[s.getMonth()]} ${s.getDate()} – ${MONTH_NAMES[e.getMonth()]} ${e.getDate()}`;
+	return t('dates.weekRange', {
+		sm: MONTH_NAMES[locale][s.getMonth()] ?? '',
+		sd: s.getDate(),
+		em: MONTH_NAMES[locale][e.getMonth()] ?? '',
+		ed: e.getDate(),
+	});
 }
 
 /** URL-safe id from a habit title. */
