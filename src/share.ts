@@ -10,6 +10,7 @@
 // Endpoint: https://habi.sh/api/share (public; no secret is involved).
 
 import { Notice, requestUrl } from 'obsidian';
+import { t } from './i18n';
 import type { Habit } from './types';
 import { recentKeys, streakFor, weekRateFor } from './stats';
 import { addDays, todayKey } from './utils/dates';
@@ -195,8 +196,8 @@ export async function shareProgress(
 
 /**
  * UI entry point: build the payload from the store and share it. Loads 60
- * days of checks so streaks are accurate. Shows the Korean "server getting
- * ready" notice on any failure and always resolves.
+ * days of checks so streaks are accurate. Shows the localized "server
+ * getting ready" notice on any failure and always resolves.
  */
 export async function shareFromStore(
 	loadHabits: () => Promise<Habit[]>,
@@ -216,18 +217,18 @@ export async function shareFromStore(
 		});
 		const outcome = await shareProgress(payload);
 		if (!outcome.ok) {
-			notify('공유 서버 준비 중');
+			notify(t('share.serverNotReady'));
 			return;
 		}
 		try {
 			await copyText(outcome.url);
-			notify('Share link copied to clipboard.');
+			notify(t('share.linkCopied'));
 		} catch {
 			// Clipboard unavailable (permissions, insecure context): hand the
 			// user the link itself so they can copy it manually.
-			notify(`Share link: ${outcome.url}`);
+			notify(t('share.linkFallback', { url: outcome.url }));
 		}
 	} catch {
-		notify('공유 서버 준비 중');
+		notify(t('share.serverNotReady'));
 	}
 }

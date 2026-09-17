@@ -2,6 +2,7 @@
 // store.ts, stats.ts and settings.ts.
 
 import { Notice, Plugin } from 'obsidian';
+import { t } from './i18n';
 import { DEFAULT_SETTINGS, HabitudeSettingTab, type PluginSettings } from './settings';
 import { HabitStore } from './store';
 import { CHECKLIST_VIEW_TYPE, ChecklistView } from './ui/checklist-view';
@@ -27,11 +28,11 @@ export default class HabitudePlugin extends Plugin {
 
 		this.registerView(COACH_VIEW_TYPE, (leaf) => new CoachView(leaf, this));
 
-		this.addRibbonIcon('check-square', 'Habitude checklist', () => {
+		this.addRibbonIcon('check-square', t('ribbon.checklist'), () => {
 			void this.activateView();
 		});
 
-		this.addRibbonIcon('sparkles', 'Habitude AI coach', () => {
+		this.addRibbonIcon('sparkles', t('ribbon.coach'), () => {
 			void this.activateCoachView();
 		});
 
@@ -69,7 +70,7 @@ export default class HabitudePlugin extends Plugin {
 		}
 		const leaf = workspace.getRightLeaf(false);
 		if (!leaf) {
-			new Notice('Could not open the checklist view.');
+			new Notice(t('notice.cannotOpenChecklist'));
 			return;
 		}
 		await leaf.setViewState({ type: CHECKLIST_VIEW_TYPE, active: true });
@@ -85,7 +86,7 @@ export default class HabitudePlugin extends Plugin {
 		}
 		const leaf = workspace.getRightLeaf(false);
 		if (!leaf) {
-			new Notice('Could not open the AI coach.');
+			new Notice(t('notice.cannotOpenCoach'));
 			return;
 		}
 		await leaf.setViewState({ type: COACH_VIEW_TYPE, active: true });
@@ -127,7 +128,7 @@ export default class HabitudePlugin extends Plugin {
 			}
 			const checks = await store.loadDayChecks(todayKey());
 			const done = habits.filter((h) => checks.has(h.id)).length;
-			this.statusBarEl.setText(`✓ ${done}/${habits.length} today`);
+			this.statusBarEl.setText(t('statusbar.today', { done, total: habits.length }));
 		} catch {
 			this.statusBarEl.setText('');
 		}

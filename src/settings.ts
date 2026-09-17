@@ -5,6 +5,7 @@
 
 import { App, PluginSettingTab, Setting, TextComponent } from 'obsidian';
 import type { SettingDefinitionItem } from 'obsidian';
+import { t } from './i18n';
 import type HabitudePlugin from './main';
 import { DEFAULT_SETTINGS, type PluginSettings } from './types';
 
@@ -32,28 +33,28 @@ export class HabitudeSettingTab extends PluginSettingTab {
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		return [
 			{
-				name: 'Data folder',
-				desc: 'Vault folder for Habits.md and daily Log notes.',
+				name: t('settings.dataFolder.name'),
+				desc: t('settings.dataFolder.desc'),
 				control: {
 					type: 'text',
 					key: 'dataFolder',
-					placeholder: 'Habitude',
+					placeholder: t('settings.dataFolder.placeholder'),
 					defaultValue: DEFAULT_SETTINGS.dataFolder,
 				},
 			},
 			{
-				name: 'Week starts on',
-				desc: 'First day of the week in the checklist grid.',
+				name: t('settings.weekStart.name'),
+				desc: t('settings.weekStart.desc'),
 				control: {
 					type: 'dropdown',
 					key: 'weekStart',
-					options: { '1': 'Monday', '0': 'Sunday' },
+					options: { '1': t('settings.weekStart.monday'), '0': t('settings.weekStart.sunday') },
 					defaultValue: String(DEFAULT_SETTINGS.weekStart),
 				},
 			},
 			{
-				name: 'Gemini API key (AI coach, optional)',
-				desc: 'Your own free Gemini key. Stored only on this device; sent only to Google AI, never to Habitude.',
+				name: t('settings.apiKey.name'),
+				desc: t('settings.apiKey.desc'),
 				render: (setting) => {
 					// Escape hatch: no declarative password control exists, so the
 					// key is rendered as a masked input on 1.13+ too.
@@ -61,8 +62,8 @@ export class HabitudeSettingTab extends PluginSettingTab {
 				},
 			},
 			{
-				name: 'Coach model',
-				desc: 'Model ID used by the AI coach.',
+				name: t('settings.coachModel.name'),
+				desc: t('settings.coachModel.desc'),
 				control: {
 					type: 'text',
 					key: 'coachModel',
@@ -71,19 +72,23 @@ export class HabitudeSettingTab extends PluginSettingTab {
 				},
 			},
 			{
-				name: 'Coach language',
-				desc: 'Reply language for the AI coach.',
+				name: t('settings.coachLanguage.name'),
+				desc: t('settings.coachLanguage.desc'),
 				control: {
 					type: 'dropdown',
 					key: 'coachLanguage',
-					options: { auto: 'Auto (match me)', en: 'English', ko: '한국어' },
+					options: {
+						auto: t('settings.coachLanguage.auto'),
+						en: t('settings.coachLanguage.english'),
+						ko: t('settings.coachLanguage.korean'),
+					},
 					defaultValue: DEFAULT_SETTINGS.coachLanguage,
 				},
 			},
 			{
 				// Info-only row (SettingDefinitionEmpty): no control rendered.
-				name: 'Sharing',
-				desc: '공유하기는 사용자가 직접 누를 때만 동작하며, 전송되는 데이터는 습관 제목·스트릭·완료율 같은 집계 통계뿐이고 노트 내용은 포함되지 않습니다.',
+				name: t('settings.sharing.name'),
+				desc: t('settings.sharing.desc'),
 			},
 		];
 	}
@@ -124,7 +129,9 @@ export class HabitudeSettingTab extends PluginSettingTab {
 		text.inputEl.type = 'password';
 		return text
 			.setPlaceholder(
-				this.plugin.settings.geminiApiKey ? '•••••••• (key saved)' : 'Paste key to enable the AI coach',
+				this.plugin.settings.geminiApiKey
+					? t('settings.apiKey.savedPlaceholder')
+					: t('settings.apiKey.emptyPlaceholder'),
 			)
 			.onChange(async (value) => {
 				this.plugin.settings.geminiApiKey = value.trim();
@@ -138,11 +145,11 @@ export class HabitudeSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Data folder')
-			.setDesc('Vault folder for Habits.md and daily Log notes.')
+			.setName(t('settings.dataFolder.name'))
+			.setDesc(t('settings.dataFolder.desc'))
 			.addText((text) =>
 				text
-					.setPlaceholder('Habitude')
+					.setPlaceholder(t('settings.dataFolder.placeholder'))
 					.setValue(this.plugin.settings.dataFolder)
 					.onChange(async (value) => {
 						this.plugin.settings.dataFolder = value.trim() || 'Habitude';
@@ -151,12 +158,12 @@ export class HabitudeSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Week starts on')
-			.setDesc('First day of the week in the checklist grid.')
+			.setName(t('settings.weekStart.name'))
+			.setDesc(t('settings.weekStart.desc'))
 			.addDropdown((drop) =>
 				drop
-					.addOption('1', 'Monday')
-					.addOption('0', 'Sunday')
+					.addOption('1', t('settings.weekStart.monday'))
+					.addOption('0', t('settings.weekStart.sunday'))
 					.setValue(String(this.plugin.settings.weekStart))
 					.onChange(async (value) => {
 						this.plugin.settings.weekStart = value === '0' ? 0 : 1;
@@ -165,15 +172,15 @@ export class HabitudeSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Gemini API key (AI coach, optional)')
-			.setDesc('Your own free Gemini key (Google AI Studio). Stored only on this device; sent only to Google AI, never to Habitude.')
+			.setName(t('settings.apiKey.name'))
+			.setDesc(t('settings.apiKey.desc'))
 			.addText((text) => {
 				this.configureApiKeyInput(text);
 			});
 
 		new Setting(containerEl)
-			.setName('Coach model')
-			.setDesc('Model ID used by the AI coach.')
+			.setName(t('settings.coachModel.name'))
+			.setDesc(t('settings.coachModel.desc'))
 			.addText((text) =>
 				text
 					.setPlaceholder(DEFAULT_SETTINGS.coachModel)
@@ -185,13 +192,13 @@ export class HabitudeSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Coach language')
-			.setDesc('Reply language for the AI coach.')
+			.setName(t('settings.coachLanguage.name'))
+			.setDesc(t('settings.coachLanguage.desc'))
 			.addDropdown((drop) =>
 				drop
-					.addOption('auto', 'Auto (match me)')
-					.addOption('en', 'English')
-					.addOption('ko', '한국어')
+					.addOption('auto', t('settings.coachLanguage.auto'))
+					.addOption('en', t('settings.coachLanguage.english'))
+					.addOption('ko', t('settings.coachLanguage.korean'))
 					.setValue(this.plugin.settings.coachLanguage)
 					.onChange(async (value) => {
 						this.plugin.settings.coachLanguage = value === 'ko' ? 'ko' : value === 'en' ? 'en' : 'auto';
@@ -201,9 +208,7 @@ export class HabitudeSettingTab extends PluginSettingTab {
 
 		// Info-only row: no control added, renders name + description.
 		new Setting(containerEl)
-			.setName('Sharing')
-			.setDesc(
-				'공유하기는 사용자가 직접 누를 때만 동작하며, 전송되는 데이터는 습관 제목·스트릭·완료율 같은 집계 통계뿐이고 노트 내용은 포함되지 않습니다.',
-			);
+			.setName(t('settings.sharing.name'))
+			.setDesc(t('settings.sharing.desc'));
 	}
 }
