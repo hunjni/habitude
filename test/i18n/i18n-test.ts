@@ -1,0 +1,169 @@
+// Tests for the UI i18n layer (src/i18n.ts).
+//
+// Covers: locale auto-detection (incl. no-localStorage and throwing
+// localStorage), manual override, en/ko translation, {var} interpolation,
+// English fallback when a ko string is missing, and en/ko key parity.
+//
+// Build & run:
+//   esbuild test/i18n/i18n-test.ts --bundle --platform=node \
+//     --alias:obsidian=./test/stress/mock-obsidian.ts \
+//     --outfile=test/i18n/dist/i18n-test.cjs --format=cjs --log-level=warning \
+//   && node test/i18n/dist/i18n-test.cjs
+
+import {
+	clearUiLocale,
+	getUiLocale,
+	setUiLocale,
+	t,
+	UI_STRINGS,
+	type UiLocale,
+} from '../../src/i18n';
+
+let failures = 0;
+
+function check(name: string, cond: boolean, extra = ''): void {
+	if (cond) {
+		console.log(`  PASS ${name}${extra}`);
+	} else {
+		failures++;
+		console.log(`  FAIL ${name}${extra}`);
+	}
+}
+
+function stubLocalStorage(getItem: () => string | null): void {
+	(globalThis as Record<string, unknown>).localStorage = { getItem };
+}
+
+function removeLocalStorage(): void {
+	delete (globalThis as Record<string, unknown>).localStorage;
+}
+
+function testDetection(): void {
+	console.log('detection');
+	removeLocalStorage();
+	clearUiLocale();
+	check('no localStorage -> en', getUiLocale() === 'en');
+
+	stubLocalStorage(() => 'ko');
+	clearUiLocale();
+	check('language=ko -> ko', getUiLocale() === 'ko');
+
+	stubLocalStorage(() => 'ko-KR');
+	clearUiLocale();
+	check('language=ko-KR -> ko', getUiLocale() === 'ko');
+
+	stubLocalStorage(() => 'en-US');
+	clearUiLocale();
+	check('language=en-US -> en', getUiLocale() === 'en');
+
+	stubLocalStorage(() => null);
+	clearUiLocale();
+	check('language=null -> en', getUiLocale() === 'en');
+
+	stubLocalStorage(() => {
+		throw new Error('denied');
+	});
+	clearUiLocale();
+	check('throwing localStorage -> en (no throw)', getUiLocale() === 'en');
+
+	removeLocalStorage();
+}
+
+function testOverride(): void {
+	console.log('override');
+	removeLocalStorage();
+	setUiLocale('ko');
+	check('override ko wins', getUiLocale() === 'ko');
+	check('t() uses override', t('checklist.add') === '추가');
+	setUiLocale('en');
+	check('override en wins', t('checklist.add') === 'Add');
+	clearUiLocale();
+	check('clear restores auto-detect (en in node)', getUiLocale() === 'en');
+}
+
+function testTranslation(): void {
+	console.log('translation');
+	removeLocalStorage();
+	clearUiLocale();
+
+	setUiLocale('en');
+	check('en string', t('checklist.weeklyReview') === 'Weekly review');
+	check('en interpolation', t('cmd.toggledChecked', { title: 'Run' }) === 'Run: checked for today');
+	check(
+		'en multi-var interpolation',
+		t('review.perHabitMeta', { rate: 50, checked: 3, total: 7, streak: 4 }) ===
+			'50% · 3/7 days · 🔥 4',
+	);
+
+	setUiLocale('ko');
+	check('ko string', t('checklist.weeklyReview') === '주간 리뷰');
+	check('ko interpolation', t('cmd.toggledChecked', { title: '러닝' }) === '러닝: 오늘 완료로 표시됨');
+	check(
+		'ko multi-var interpolation',
+		t('review.perHabitMeta', { rate: 50, checked: 3, total: 7, streak: 4 }) ===
+			'50% · 3/7일 · 🔥 4',
+	);
+	check('ko keeps original share notice', t('share.serverNotReady') === '공유 서버 준비 중');
+	clearUiLocale();
+}
+
+function testFallback(): void {
+	console.log('fallback');
+	removeLocalStorage();
+	setUiLocale('ko');
+
+	// Temporarily drop a ko string: t() must fall back to English, and the
+	// dictionaries must be restored afterwards.
+	const koDict = UI_STRINGS.ko as Record<string, string>;
+	const saved = koDict['checklist.add'] as string;
+	delete koDict['checklist.add'];
+	check('missing ko -> english fallback', t('checklist.add') === 'Add');
+	koDict['checklist.add'] = saved;
+	check('dict restored', t('checklist.add') === '추가');
+
+	check('unknown key -> key itself', t('no.such.key') === 'no.such.key');
+	clearUiLocale();
+}
+
+function testParity(): void {
+	console.log('parity');
+	const enKeys = Object.keys(UI_STRINGS.en).sort();
+	const koKeys = Object.keys(UI_STRINGS.ko).sort();
+	check('en has keys', enKeys.length > 50, ` (${enKeys.length} keys)`);
+	check(
+		'ko covers every en key',
+		enKeys.every((k) => k in UI_STRINGS.ko),
+		` (missing: ${enKeys.filter((k) => !(k in UI_STRINGS.ko)).join(', ') || 'none'})`,
+	);
+	check(
+		'no ko-only keys',
+		koKeys.every((k) => k in UI_STRINGS.en),
+		` (extra: ${koKeys.filter((k) => !(k in UI_STRINGS.en)).join(', ') || 'none'})`,
+	);
+	const locales: UiLocale[] = ['en', 'ko'];
+	// Keys intentionally empty in a locale (ko puts the link first in the
+	// setup step, so the prefix is empty there).
+	const emptyOk = new Set(['ko:coach.setupStep1Prefix']);
+	for (const locale of locales) {
+		const empty = enKeys.filter((k) => !UI_STRINGS[locale][k] && !emptyOk.has(`${locale}:${k}`));
+		check(`${locale}: no empty strings`, empty.length === 0, empty.length ? ` (${empty.join(', ')})` : '');
+	}
+}
+
+async function main(): Promise<void> {
+	testDetection();
+	testOverride();
+	testTranslation();
+	testFallback();
+	testParity();
+	if (failures > 0) {
+		console.log(`\n${failures} check(s) FAILED`);
+		process.exit(1);
+	}
+	console.log('\nAll i18n checks passed.');
+}
+
+main().catch((e) => {
+	console.error(e);
+	process.exit(1);
+});
