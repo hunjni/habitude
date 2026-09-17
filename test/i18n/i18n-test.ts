@@ -31,11 +31,11 @@ function check(name: string, cond: boolean, extra = ''): void {
 }
 
 function stubGetLanguage(fn: () => string | null): void {
-	(globalThis as Record<string, unknown>).getLanguage = fn;
+	(globalThis as Record<string, unknown>).window = { getLanguage: fn };
 }
 
 function removeGetLanguage(): void {
-	delete (globalThis as Record<string, unknown>).getLanguage;
+	delete (globalThis as Record<string, unknown>).window;
 }
 
 function testDetection(): void {
