@@ -253,17 +253,21 @@ export function clearUiLocale(): void {
 }
 
 /**
- * Detect the UI locale from Obsidian's own language setting. Never throws:
- * localStorage may be absent (node tests) or access-restricted.
+ * Detect the UI locale from Obsidian's own language setting via the
+ * getLanguage() API. Never throws: the API may be absent (node tests)
+ * or access-restricted.
  */
 export function getUiLocale(): UiLocale {
 	if (override) return override;
 	try {
-		const lang =
-			typeof localStorage === 'undefined' ? null : localStorage.getItem('language');
-		if (lang && lang.toLowerCase().startsWith('ko')) return 'ko';
+		// getLanguage() is exposed globally by the Obsidian runtime.
+		const getLang = (globalThis as { getLanguage?: unknown }).getLanguage;
+		if (typeof getLang === 'function') {
+			const lang = (getLang as () => string)();
+			if (lang && lang.toLowerCase().startsWith('ko')) return 'ko';
+		}
 	} catch {
-		// Absent or unreadable storage — fall through to English.
+		// Absent or unreadable — fall through to English.
 	}
 	return 'en';
 }
