@@ -255,13 +255,18 @@ export function clearUiLocale(): void {
 /**
  * Detect the UI locale from Obsidian's own language setting via the
  * getLanguage() API. Never throws: the API may be absent (node tests)
- * or access-restricted.
+ * or access-restricted. Uses window for popout window compatibility
+ * per the community review guidelines.
  */
 export function getUiLocale(): UiLocale {
 	if (override) return override;
 	try {
-		// getLanguage() is exposed globally by the Obsidian runtime.
-		const getLang = (globalThis as { getLanguage?: unknown }).getLanguage;
+		// getLanguage() is exposed on window by the Obsidian runtime.
+		const w =
+			typeof window === 'undefined'
+				? undefined
+				: (window as unknown as { getLanguage?: unknown });
+		const getLang = w?.getLanguage;
 		if (typeof getLang === 'function') {
 			const lang = (getLang as () => string)();
 			if (lang && lang.toLowerCase().startsWith('ko')) return 'ko';
