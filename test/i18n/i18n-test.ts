@@ -1,7 +1,7 @@
 // Tests for the UI i18n layer (src/i18n.ts).
 //
-// Covers: locale auto-detection (incl. no-localStorage and throwing
-// localStorage), manual override, en/ko translation, {var} interpolation,
+// Covers: locale auto-detection (incl. no-getLanguage and throwing
+// getLanguage), manual override, en/ko translation, {var} interpolation,
 // English fallback when a ko string is missing, and en/ko key parity.
 //
 // Build & run:
@@ -30,48 +30,48 @@ function check(name: string, cond: boolean, extra = ''): void {
 	}
 }
 
-function stubLocalStorage(getItem: () => string | null): void {
-	(globalThis as Record<string, unknown>).localStorage = { getItem };
+function stubGetLanguage(fn: () => string | null): void {
+	(globalThis as Record<string, unknown>).getLanguage = fn;
 }
 
-function removeLocalStorage(): void {
-	delete (globalThis as Record<string, unknown>).localStorage;
+function removeGetLanguage(): void {
+	delete (globalThis as Record<string, unknown>).getLanguage;
 }
 
 function testDetection(): void {
 	console.log('detection');
-	removeLocalStorage();
+	removeGetLanguage();
 	clearUiLocale();
-	check('no localStorage -> en', getUiLocale() === 'en');
+	check('no getLanguage -> en', getUiLocale() === 'en');
 
-	stubLocalStorage(() => 'ko');
+	stubGetLanguage(() => 'ko');
 	clearUiLocale();
 	check('language=ko -> ko', getUiLocale() === 'ko');
 
-	stubLocalStorage(() => 'ko-KR');
+	stubGetLanguage(() => 'ko-KR');
 	clearUiLocale();
 	check('language=ko-KR -> ko', getUiLocale() === 'ko');
 
-	stubLocalStorage(() => 'en-US');
+	stubGetLanguage(() => 'en-US');
 	clearUiLocale();
 	check('language=en-US -> en', getUiLocale() === 'en');
 
-	stubLocalStorage(() => null);
+	stubGetLanguage(() => null);
 	clearUiLocale();
 	check('language=null -> en', getUiLocale() === 'en');
 
-	stubLocalStorage(() => {
+	stubGetLanguage(() => {
 		throw new Error('denied');
 	});
 	clearUiLocale();
-	check('throwing localStorage -> en (no throw)', getUiLocale() === 'en');
+	check('throwing getLanguage -> en (no throw)', getUiLocale() === 'en');
 
-	removeLocalStorage();
+	removeGetLanguage();
 }
 
 function testOverride(): void {
 	console.log('override');
-	removeLocalStorage();
+	removeGetLanguage();
 	setUiLocale('ko');
 	check('override ko wins', getUiLocale() === 'ko');
 	check('t() uses override', t('checklist.add') === '추가');
@@ -83,7 +83,7 @@ function testOverride(): void {
 
 function testTranslation(): void {
 	console.log('translation');
-	removeLocalStorage();
+	removeGetLanguage();
 	clearUiLocale();
 
 	setUiLocale('en');
@@ -109,7 +109,7 @@ function testTranslation(): void {
 
 function testFallback(): void {
 	console.log('fallback');
-	removeLocalStorage();
+	removeGetLanguage();
 	setUiLocale('ko');
 
 	// Temporarily drop a ko string: t() must fall back to English, and the
