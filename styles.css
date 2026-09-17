@@ -320,3 +320,95 @@
 	justify-content: space-between;
 	align-items: center;
 }
+
+/* ---- Progress graphs (local SVG, theme-aware) ---- */
+
+.habitude-graphs {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 4px;
+}
+
+.habitude-graphs-title {
+	margin: 0;
+	font-size: 1em;
+	font-weight: 700;
+	color: var(--text-normal);
+}
+
+.habitude-graphs-body {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.habitude-graph-card {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	padding: 10px 12px;
+	background: var(--background-primary);
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.habitude-graph-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 8px;
+}
+
+.habitude-graph-name {
+	font-weight: 600;
+	color: var(--text-normal);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.habitude-graph-streak {
+	color: var(--text-muted);
+	font-size: 0.9em;
+	white-space: nowrap;
+}
+
+.habitude-graph-svg {
+	display: block;
+}
+
+/* ---- Opt-in share ---- */
+
+.habitude-share-row {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	align-items: flex-start;
+	margin-top: 4px;
+}
+
+.habitude-share-btn {
+	cursor: pointer;
+	padding: 8px 14px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	background: var(--background-secondary);
+	color: var(--text-normal);
+	font-weight: 600;
+}
+
+.habitude-share-btn:hover:not(:disabled) {
+	background: var(--background-modifier-hover);
+}
+
+.habitude-share-btn:disabled {
+	opacity: 0.6;
+	cursor: wait;
+}
+
+.habitude-share-note {
+	margin: 0;
+	font-size: 0.85em;
+	color: var(--text-muted);
+}

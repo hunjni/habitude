@@ -8,6 +8,8 @@ export default defineConfig(
 		'dist',
 		'test/stress/dist',
 		'test/coach/dist',
+		'test/settings/dist',
+		'test/share/dist',
 		'esbuild.config.mjs',
 		'version-bump.mjs',
 		'versions.json',

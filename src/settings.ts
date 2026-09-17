@@ -80,6 +80,11 @@ export class HabitudeSettingTab extends PluginSettingTab {
 					defaultValue: DEFAULT_SETTINGS.coachLanguage,
 				},
 			},
+			{
+				// Info-only row (SettingDefinitionEmpty): no control rendered.
+				name: 'Sharing',
+				desc: '공유하기는 사용자가 직접 누를 때만 동작하며, 전송되는 데이터는 습관 제목·스트릭·완료율 같은 집계 통계뿐이고 노트 내용은 포함되지 않습니다.',
+			},
 		];
 	}
 
@@ -192,6 +197,13 @@ export class HabitudeSettingTab extends PluginSettingTab {
 						this.plugin.settings.coachLanguage = value === 'ko' ? 'ko' : value === 'en' ? 'en' : 'auto';
 						await this.plugin.saveSettings();
 					}),
+			);
+
+		// Info-only row: no control added, renders name + description.
+		new Setting(containerEl)
+			.setName('Sharing')
+			.setDesc(
+				'공유하기는 사용자가 직접 누를 때만 동작하며, 전송되는 데이터는 습관 제목·스트릭·완료율 같은 집계 통계뿐이고 노트 내용은 포함되지 않습니다.',
 			);
 	}
 }

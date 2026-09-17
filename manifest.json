@@ -1,10 +1,10 @@
 {
 	"author": "Habitude",
 	"authorUrl": "https://habitude.ai",
-	"description": "7-day habit checklist with streaks and weekly review. Markdown-native: habits live in Habitude/Habits.md, daily checks in Habitude/Log/YYYY-MM-DD.md. Free in-app AI coach via your own Gemini API key (BYOK).",
+	"description": "7-day habit checklist with streaks, local progress graphs, and weekly review. Markdown-native: habits live in Habitude/Habits.md, daily checks in Habitude/Log/YYYY-MM-DD.md. Free in-app AI coach via your own Gemini API key (BYOK). Opt-in progress sharing.",
 	"id": "habitude-checklist",
 	"isDesktopOnly": false,
 	"minAppVersion": "1.7.2",
 	"name": "Habitude Checklist",
-	"version": "0.2.1"
+	"version": "0.3.0"
 }

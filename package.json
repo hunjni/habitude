@@ -1,6 +1,6 @@
 {
 	"name": "habitude-checklist",
-	"version": "0.2.1",
+	"version": "0.3.0",
 	"description": "7-day habit checklist with streaks and weekly review for Obsidian",
 	"main": "main.js",
 	"type": "module",
@@ -13,7 +13,8 @@
 		"test:coach": "esbuild test/coach/coach-test.ts --bundle --platform=node --alias:obsidian=./test/stress/mock-obsidian.ts --outfile=test/coach/dist/coach-test.cjs --format=cjs --log-level=warning && node test/coach/dist/coach-test.cjs",
 		"test:edge": "esbuild test/coach/coach-edge-test.ts --bundle --platform=node --alias:obsidian=./test/stress/mock-obsidian.ts --outfile=test/coach/dist/coach-edge-test.cjs --format=cjs --log-level=warning && node test/coach/dist/coach-edge-test.cjs",
 		"test:settings": "esbuild test/settings/settings-masking-test.ts --bundle --platform=node --alias:obsidian=./test/stress/mock-obsidian.ts --outfile=test/settings/dist/settings-masking-test.cjs --format=cjs --log-level=warning && node test/settings/dist/settings-masking-test.cjs",
-	"test:unit": "npm run test:coach && npm run test:edge && npm run test:settings"
+		"test:share": "esbuild test/share/share-test.ts --bundle --platform=node --alias:obsidian=./test/stress/mock-obsidian.ts --outfile=test/share/dist/share-test.cjs --format=cjs --log-level=warning && node test/share/dist/share-test.cjs",
+		"test:unit": "npm run test:coach && npm run test:edge && npm run test:settings && npm run test:share"
 	},
 	"keywords": [],
 	"license": "0-BSD",

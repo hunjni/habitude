@@ -21,6 +21,7 @@ export default class HabitudePlugin extends Plugin {
 			new ChecklistView(leaf, {
 				getStore: () => this.getStore(),
 				getWeekStart: () => this.settings.weekStart,
+				getPluginVersion: () => this.manifest.version,
 			}),
 		);
 
