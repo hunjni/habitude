@@ -24,6 +24,7 @@ import {
 	type SharePayload,
 } from '../../src/share';
 import { escapeXml, historyStripSvg, weeklyBarsSvg } from '../../src/graphs';
+import { t } from '../../src/i18n';
 import { addDays, todayKey } from '../../src/utils/dates';
 import type { Habit } from '../../src/types';
 
@@ -221,8 +222,9 @@ async function testShareFromStore(): Promise<void> {
 		copies.push(t);
 	});
 	// defaultPost hits the real network in the plugin; in tests the sandbox
-	// has no habi.sh backend, so this must resolve to the ready notice.
-	check('failure notice shown', notices.includes('공유 서버 준비 중'), ` (was ${JSON.stringify(notices)})`);
+	// has no habi.sh backend, so this must resolve to the ready notice
+	// (localized for the test env's UI locale, which is English in node).
+	check('failure notice shown', notices.includes(t('share.serverNotReady')), ` (was ${JSON.stringify(notices)})`);
 	check('nothing copied on failure', copies.length === 0);
 }
 
