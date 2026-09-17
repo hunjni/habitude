@@ -124,8 +124,80 @@ export class ItemView {}
 export class WorkspaceLeaf {}
 export class Menu {}
 export class Modal {}
-export class PluginSettingTab {}
-export class Setting {}
+export class PluginSettingTab {
+	containerEl: unknown = null;
+	constructor(
+		public app: unknown,
+		public plugin: unknown,
+	) {}
+}
+/** Minimal chainable input component for settings-UI tests. */
+export class TextComponent {
+	/** Mirrors the real inputEl; tests assert type === 'password'. */
+	inputEl: { type: string } = { type: 'text' };
+	placeholder = '';
+	setValueCalls: unknown[] = [];
+	private changeCb: ((value: string) => void) | null = null;
+	setPlaceholder(p: string): this {
+		this.placeholder = p;
+		return this;
+	}
+	setValue(v: unknown): this {
+		this.setValueCalls.push(v);
+		return this;
+	}
+	onChange(cb: (value: string) => void): this {
+		this.changeCb = cb;
+		return this;
+	}
+	/** Test helper: simulate the user typing. */
+	__fireChange(value: string): void {
+		this.changeCb?.(value);
+	}
+}
+/** Minimal chainable dropdown for settings-UI tests. */
+export class DropdownComponent {
+	private changeCb: ((value: string) => void) | null = null;
+	addOption(_value: string, _label: string): this {
+		return this;
+	}
+	setValue(_v: string): this {
+		return this;
+	}
+	onChange(cb: (value: string) => void): this {
+		this.changeCb = cb;
+		return this;
+	}
+}
+/** Chainable Setting row; records instances so tests can find rows by name. */
+export class Setting {
+	static instances: Setting[] = [];
+	name = '';
+	texts: TextComponent[] = [];
+	dropdowns: DropdownComponent[] = [];
+	constructor(public containerEl: unknown) {
+		Setting.instances.push(this);
+	}
+	setName(n: string): this {
+		this.name = n;
+		return this;
+	}
+	setDesc(_d: string | DocumentFragment): this {
+		return this;
+	}
+	addText(cb: (text: TextComponent) => unknown): this {
+		const text = new TextComponent();
+		this.texts.push(text);
+		cb(text);
+		return this;
+	}
+	addDropdown(cb: (drop: DropdownComponent) => unknown): this {
+		const drop = new DropdownComponent();
+		this.dropdowns.push(drop);
+		cb(drop);
+		return this;
+	}
+}
 export class SuggestModal<T = unknown> {
 	/** Keeps the generic parameter referenced for API shape parity. */
 	declare protected itemType: T;

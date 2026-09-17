@@ -3,7 +3,7 @@
 // coach. The key is stored only in this device's plugin data and is sent
 // only to Google AI — never to Habitude servers.
 
-import { App, PluginSettingTab, Setting } from 'obsidian';
+import { App, PluginSettingTab, Setting, TextComponent } from 'obsidian';
 import type { SettingDefinitionItem } from 'obsidian';
 import type HabitudePlugin from './main';
 import { DEFAULT_SETTINGS, type PluginSettings } from './types';
@@ -17,10 +17,17 @@ export class HabitudeSettingTab extends PluginSettingTab {
 	}
 
 	/**
-	 * Declarative settings for Obsidian 1.13.0+: makes both settings appear in
+	 * Declarative settings for Obsidian 1.13.0+: makes the settings appear in
 	 * the native settings search. On 1.13+, display() is bypassed and only
 	 * this runs; display() below remains as the fallback for older versions
 	 * (minAppVersion is still 1.7.2).
+	 *
+	 * NOTE: the declarative SettingControl union has NO password/secret
+	 * variant, so a plain `control: { type: 'text' }` would render the API key
+	 * in clear text on 1.13+. The key therefore uses the `render` escape hatch
+	 * (the community-standard pattern) and hand-renders a password input —
+	 * exactly like the display() fallback. The definition still carries
+	 * name/desc so settings search keeps working.
 	 */
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		return [
@@ -47,11 +54,10 @@ export class HabitudeSettingTab extends PluginSettingTab {
 			{
 				name: 'Gemini API key (AI coach, optional)',
 				desc: 'Your own free Gemini key. Stored only on this device; sent only to Google AI, never to Habitude.',
-				control: {
-					type: 'text',
-					key: 'geminiApiKey',
-					placeholder: 'Paste key to enable the AI coach',
-					defaultValue: '',
+				render: (setting) => {
+					// Escape hatch: no declarative password control exists, so the
+					// key is rendered as a masked input on 1.13+ too.
+					setting.addText((text) => this.configureApiKeyInput(text));
 				},
 			},
 			{
@@ -100,6 +106,27 @@ export class HabitudeSettingTab extends PluginSettingTab {
 		await this.plugin.saveSettings();
 	}
 
+	/**
+	 * Shared wiring for the Gemini API-key input. Used by BOTH the declarative
+	 * `render` escape hatch (Obsidian 1.13+) and the display() fallback
+	 * (older versions), so the key is always a masked password input and the
+	 * two paths cannot drift apart.
+	 *
+	 * The input never pre-fills the saved key into the DOM: when a key is
+	 * stored the placeholder shows a mask hint instead.
+	 */
+	private configureApiKeyInput(text: TextComponent): TextComponent {
+		text.inputEl.type = 'password';
+		return text
+			.setPlaceholder(
+				this.plugin.settings.geminiApiKey ? '•••••••• (key saved)' : 'Paste key to enable the AI coach',
+			)
+			.onChange(async (value) => {
+				this.plugin.settings.geminiApiKey = value.trim();
+				await this.plugin.saveSettings();
+			});
+	}
+
 	/** Fallback for Obsidian < 1.13.0 (bypassed when getSettingDefinitions runs). */
 	display(): void {
 		const { containerEl } = this;
@@ -136,15 +163,7 @@ export class HabitudeSettingTab extends PluginSettingTab {
 			.setName('Gemini API key (AI coach, optional)')
 			.setDesc('Your own free Gemini key (Google AI Studio). Stored only on this device; sent only to Google AI, never to Habitude.')
 			.addText((text) => {
-				text.inputEl.type = 'password';
-				text
-					.setPlaceholder(
-						this.plugin.settings.geminiApiKey ? '•••••••• (key saved)' : 'Paste key to enable the AI coach',
-					)
-					.onChange(async (value) => {
-						this.plugin.settings.geminiApiKey = value.trim();
-						await this.plugin.saveSettings();
-					});
+				this.configureApiKeyInput(text);
 			});
 
 		new Setting(containerEl)
