@@ -81,7 +81,7 @@ function testPayloadSchema(): void {
 		pluginVersion: '0.3.0',
 		generatedAt: '2026-09-17T00:00:00.000Z',
 	});
-	check('version is 1', payload.version === 1);
+	check('version is "1"', payload.version === '1');
 	check('pluginVersion passes through', payload.pluginVersion === '0.3.0');
 	check('generatedAt kept when valid ISO', payload.generatedAt === '2026-09-17T00:00:00.000Z');
 	check('top-level keys whitelisted', keysOf(payload).join(',') === 'generatedAt,pluginVersion,stats,version');
@@ -173,7 +173,7 @@ async function testShareProgress(): Promise<void> {
 	if (ok.ok) check('url built from id', ok.url === 'https://habi.sh/s/abc123');
 	check('posts to habi.sh api', postedUrl === 'https://habi.sh/api/share');
 	const parsed = JSON.parse(postedBody) as SharePayload;
-	check('posted body is the payload', parsed.version === 1 && parsed.stats.habits.length === 1);
+	check('posted body is the payload', parsed.version === '1' && parsed.stats.habits.length === 1);
 
 	const throwing = await shareProgress(payload, {
 		post: async () => {

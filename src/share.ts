@@ -9,13 +9,13 @@
 //
 // Endpoint: https://habi.sh/api/share (public; no secret is involved).
 
-import { Notice } from 'obsidian';
+import { Notice, requestUrl } from 'obsidian';
 import type { Habit } from './types';
 import { recentKeys, streakFor, weekRateFor } from './stats';
 import { addDays, todayKey } from './utils/dates';
 
 export const SHARE_API_URL = 'https://habi.sh/api/share';
-export const SHARE_PAYLOAD_VERSION = 1;
+export const SHARE_PAYLOAD_VERSION = '1';
 /** Keep titles bounded: long titles are truncated, never dropped silently. */
 const MAX_TITLE_LEN = 120;
 /** Hanging requests must not freeze the UI. */
@@ -32,7 +32,7 @@ export interface ShareHabitStat {
 }
 
 export interface SharePayload {
-	version: 1;
+	version: string;
 	pluginVersion: string;
 	generatedAt: string;
 	stats: {
@@ -148,21 +148,26 @@ export interface ShareDeps {
 export type ShareOutcome = { ok: true; url: string } | { ok: false };
 
 async function defaultPost(url: string, body: string): Promise<SharePostResult> {
-	const ctrl = new AbortController();
-	const timer = window.setTimeout(() => ctrl.abort(), SHARE_TIMEOUT_MS);
+	let timer: number | undefined;
 	try {
-		const res = await fetch(url, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body,
-			signal: ctrl.signal,
-		});
+		const res = await Promise.race([
+			requestUrl({
+				url,
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body,
+				throw: false,
+			}),
+			new Promise<never>((_, reject) => {
+				timer = window.setTimeout(() => reject(new Error('share timeout')), SHARE_TIMEOUT_MS);
+			}),
+		]);
 		return {
-			ok: res.ok,
-			json: () => res.json() as Promise<unknown>,
+			ok: res.status >= 200 && res.status < 300,
+			json: () => Promise.resolve(res.json as unknown),
 		};
 	} finally {
-		window.clearTimeout(timer);
+		if (timer !== undefined) window.clearTimeout(timer);
 	}
 }
 

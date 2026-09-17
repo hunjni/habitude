@@ -77,13 +77,13 @@
 	border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.habitude-col-habit {
+.habitude-grid .habitude-col-habit {
 	width: 34%;
-	text-align: left !important;
+	text-align: left;
 }
 
-.habitude-habit-cell {
-	text-align: left !important;
+.habitude-grid .habitude-habit-cell {
+	text-align: left;
 	vertical-align: middle;
 }
 
