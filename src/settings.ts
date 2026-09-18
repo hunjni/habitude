@@ -9,7 +9,7 @@ import type { SettingDefinitionItem } from 'obsidian';
 import { t } from './i18n';
 import type HabitudePlugin from './main';
 import { getProvider, LLM_PROVIDER_IDS, type LlmProviderId } from './coach/providers';
-import { DEFAULT_SETTINGS, type PluginSettings } from './types';
+import { DEFAULT_SETTINGS, normalizeCheckmarkColor, type PluginSettings } from './types';
 
 export type { PluginSettings };
 export { DEFAULT_SETTINGS };
@@ -57,6 +57,15 @@ export class HabitudeSettingTab extends PluginSettingTab {
 					key: 'weekStart',
 					options: { '1': t('settings.weekStart.monday'), '0': t('settings.weekStart.sunday') },
 					defaultValue: String(DEFAULT_SETTINGS.weekStart),
+				},
+			},
+			{
+				name: t('settings.checkmarkColor.name'),
+				desc: t('settings.checkmarkColor.desc'),
+				control: {
+					type: 'color',
+					key: 'checkmarkColor',
+					defaultValue: DEFAULT_SETTINGS.checkmarkColor,
 				},
 			},
 			{
@@ -129,6 +138,8 @@ export class HabitudeSettingTab extends PluginSettingTab {
 	async setControlValue(key: string, value: unknown): Promise<void> {
 		if (key === 'weekStart') {
 			this.plugin.settings.weekStart = value === '0' ? 0 : 1;
+		} else if (key === 'checkmarkColor') {
+			this.plugin.settings.checkmarkColor = normalizeCheckmarkColor(value);
 		} else if (key === 'dataFolder') {
 			const raw = typeof value === 'string' ? value : '';
 			this.plugin.settings.dataFolder = raw.trim() || 'Habitude';
@@ -203,6 +214,19 @@ export class HabitudeSettingTab extends PluginSettingTab {
 					.setValue(String(this.plugin.settings.weekStart))
 					.onChange(async (value) => {
 						this.plugin.settings.weekStart = value === '0' ? 0 : 1;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(t('settings.checkmarkColor.name'))
+			.setDesc(t('settings.checkmarkColor.desc'))
+			.addColorPicker((cp) =>
+				cp
+					.setValue(normalizeCheckmarkColor(this.plugin.settings.checkmarkColor))
+					.onChange(async (value) => {
+						this.plugin.settings.checkmarkColor = normalizeCheckmarkColor(value);
+						// saveSettings() re-renders open views → color updates live.
 						await this.plugin.saveSettings();
 					}),
 			);

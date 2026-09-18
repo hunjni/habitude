@@ -38,6 +38,9 @@ const en: Dict = {
 	'settings.weekStart.desc': 'First day of the week in the checklist grid.',
 	'settings.weekStart.monday': 'Monday',
 	'settings.weekStart.sunday': 'Sunday',
+	'settings.checkmarkColor.name': 'Checkmark color',
+	'settings.checkmarkColor.desc':
+		'Color of the ✓ mark on checked days. Open checklists update immediately.',
 	'settings.provider.name': 'AI provider',
 	'settings.provider.desc':
 		'Which LLM service the AI coach talks to. Your key and chats are sent only to this provider — never to Habitude.',
@@ -175,6 +178,8 @@ const ko: Dict = {
 	'settings.weekStart.desc': '체크리스트 그리드에서 한 주의 시작 요일.',
 	'settings.weekStart.monday': '월요일',
 	'settings.weekStart.sunday': '일요일',
+	'settings.checkmarkColor.name': '체크마크 색상',
+	'settings.checkmarkColor.desc': '체크된 날짜의 ✓ 표시 색상. 변경하면 열린 체크리스트에 바로 반영됩니다.',
 	'settings.provider.name': 'AI 제공자',
 	'settings.provider.desc':
 		'AI 코치가 대화할 LLM 서비스. 키와 대화 내용은 이 제공자에게만 전송되며 Habitude로는 절대 전송되지 않습니다.',

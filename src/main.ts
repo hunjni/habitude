@@ -4,6 +4,7 @@
 import { Notice, Plugin } from 'obsidian';
 import { t } from './i18n';
 import { DEFAULT_SETTINGS, HabitudeSettingTab, type PluginSettings } from './settings';
+import { normalizeCheckmarkColor } from './types';
 import { HabitStore } from './store';
 import { CHECKLIST_VIEW_TYPE, ChecklistView } from './ui/checklist-view';
 import { COACH_VIEW_TYPE, CoachView } from './ui/coach-view';
@@ -22,6 +23,7 @@ export default class HabitudePlugin extends Plugin {
 			new ChecklistView(leaf, {
 				getStore: () => this.getStore(),
 				getWeekStart: () => this.settings.weekStart,
+				getCheckmarkColor: () => this.settings.checkmarkColor,
 				getPluginVersion: () => this.manifest.version,
 			}),
 		);
@@ -136,6 +138,10 @@ export default class HabitudePlugin extends Plugin {
 
 	async loadSettings(): Promise<void> {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, (await this.loadData()) as Partial<PluginSettings>);
+		// New setting: users without it (pre-checkmark-color versions) inherit
+		// the white default via Object.assign; invalid values are normalized
+		// so the check mark can never render with a broken color.
+		this.settings.checkmarkColor = normalizeCheckmarkColor(this.settings.checkmarkColor);
 		// One-time migration: legacy geminiApiKey/coachModel → provider-neutral
 		// llm* settings. Only runs when the new key is empty and a legacy key
 		// exists, so existing users keep their coach working after the update.

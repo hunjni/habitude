@@ -35,6 +35,8 @@ export interface PluginSettings {
 	dataFolder: string;
 	/** 0 = Sunday, 1 = Monday */
 	weekStart: 0 | 1;
+	/** color of the ✓ check mark in the checklist grid ('#rrggbb'); user-configurable */
+	checkmarkColor: string;
 	/** AI coach provider (gemini, openai, anthropic, openrouter, ollama, lmstudio, custom) */
 	llmProvider: LlmProviderId;
 	/** BYOK key for the AI coach. Empty = coach disabled (or local provider without a key). Stored on-device only. */
@@ -54,6 +56,7 @@ export interface PluginSettings {
 export const DEFAULT_SETTINGS: PluginSettings = {
 	dataFolder: 'Habitude',
 	weekStart: 1,
+	checkmarkColor: '#ffffff',
 	llmProvider: 'gemini',
 	llmApiKey: '',
 	llmModel: '',
@@ -62,3 +65,14 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	coachModel: DEFAULT_COACH_MODEL,
 	coachLanguage: 'auto',
 };
+
+/**
+ * Normalize a user-supplied checkmark color to a valid '#rrggbb' string.
+ * Anything invalid (including values from older data or hand-edited
+ * configs) falls back to the white default so the check mark never renders
+ * with a broken color.
+ */
+export function normalizeCheckmarkColor(value: unknown): string {
+	const s = typeof value === 'string' ? value.trim() : '';
+	return /^#[0-9a-fA-F]{6}$/.test(s) ? s : DEFAULT_SETTINGS.checkmarkColor;
+}

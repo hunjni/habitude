@@ -121,7 +121,8 @@
 	border-radius: 50%;
 	border: 2px solid var(--background-modifier-border);
 	background: transparent;
-	color: var(--text-on-accent);
+	/* User-configurable via Settings → Habitude → Checkmark color (default white). */
+	color: var(--habitude-checkmark-color, #ffffff);
 	font-size: 15px;
 	line-height: 1;
 	padding: 0;

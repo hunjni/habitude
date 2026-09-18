@@ -169,12 +169,33 @@ export class DropdownComponent {
 		return this;
 	}
 }
+/** Minimal chainable color picker for settings-UI tests. */
+export class ColorPickerComponent {
+	private changeCb: ((value: string) => void) | null = null;
+	private value = '';
+	getValue(): string {
+		return this.value;
+	}
+	setValue(v: string): this {
+		this.value = v;
+		return this;
+	}
+	onChange(cb: (value: string) => void): this {
+		this.changeCb = cb;
+		return this;
+	}
+	/** Test helper: simulate the user picking a color. */
+	__fireChange(value: string): void {
+		this.changeCb?.(value);
+	}
+}
 /** Chainable Setting row; records instances so tests can find rows by name. */
 export class Setting {
 	static instances: Setting[] = [];
 	name = '';
 	texts: TextComponent[] = [];
 	dropdowns: DropdownComponent[] = [];
+	colorPickers: ColorPickerComponent[] = [];
 	constructor(public containerEl: unknown) {
 		Setting.instances.push(this);
 	}
@@ -197,10 +218,22 @@ export class Setting {
 		cb(drop);
 		return this;
 	}
+	addColorPicker(cb: (cp: ColorPickerComponent) => unknown): this {
+		const cp = new ColorPickerComponent();
+		this.colorPickers.push(cp);
+		cb(cp);
+		return this;
+	}
 }
 export class SuggestModal<T = unknown> {
 	/** Keeps the generic parameter referenced for API shape parity. */
 	declare protected itemType: T;
+}
+/** Minimal stub so src/ui/coach-view.ts bundles in tests that import main.ts. */
+export class MarkdownRenderer {
+	static render(): void {
+		/* no-op in tests */
+	}
 }
 export class Plugin {}
 /** Not implemented in the mock — tests inject their own transport. */

@@ -24,6 +24,8 @@ export const CHECKLIST_VIEW_TYPE = 'habitude-checklist-view';
 interface ViewDeps {
 	getStore: () => HabitStore;
 	getWeekStart: () => 0 | 1;
+	/** '#rrggbb' color for the ✓ check mark glyph */
+	getCheckmarkColor: () => string;
 	getPluginVersion: () => string;
 }
 
@@ -59,6 +61,10 @@ export class ChecklistView extends ItemView {
 		const container = this.containerEl.children[1] as HTMLElement;
 		container.empty();
 		container.addClass('habitude-checklist');
+		// User-configurable checkmark color; falls back to the CSS default
+		// (white) if unset. saveSettings() re-renders views, so a settings
+		// change applies to open checklists immediately.
+		container.style.setProperty('--habitude-checkmark-color', this.deps.getCheckmarkColor());
 
 		const store = this.deps.getStore();
 		const weekStart = this.deps.getWeekStart();
