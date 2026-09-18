@@ -46,6 +46,7 @@ Both files are human-readable and hand-editable. The plugin re-reads them on eve
 - **Checklist: fully local.** Habit tracking never calls any API, opens no connections, and holds no credentials. Your habits live in your vault as plain Markdown.
 - **Progress graphs: fully local.** Rendered in the app from your check data as SVG. No network involved.
 - **Share progress: explicit opt-in.** Only aggregate statistics (habit titles, streaks, completion rates) are ever transmitted — never your note contents. The payload is `{version, pluginVersion, generatedAt, stats: {habits: [{title, streak, weekRate}]}}` posted to `https://habi.sh/api/share`; nothing is sent unless you click the button.
+- **Clipboard: write-only, on your tap.** The only clipboard access is writing the share link to your clipboard right after you press *Share progress*; the plugin never reads your clipboard.
 - **AI coach: opt-in BYOK.** The coach only activates if you pick a provider and — for cloud providers — paste your own API key (free tiers exist for Gemini, OpenAI, Anthropic, and OpenRouter). The key is stored only on this device, and requests go **directly to the provider you selected** — never to Habitude servers. Each message carries your habit *statistics* (streaks, rates, patterns), never your raw note text. Local providers (Ollama, LM Studio) need no key at all.
 - The only other thing that ever leaves Obsidian is you: the *Get AI coaching* button opens `https://habitude.ai` in your browser.
 

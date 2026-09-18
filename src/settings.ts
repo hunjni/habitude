@@ -4,7 +4,7 @@
 // device's plugin data and is sent only to the selected provider — never
 // to Habitude servers.
 
-import { App, PluginSettingTab, Setting, TextComponent } from 'obsidian';
+import { App, PluginSettingTab, TextComponent } from 'obsidian';
 import type { SettingDefinitionItem } from 'obsidian';
 import { t } from './i18n';
 import type HabitudePlugin from './main';
@@ -20,17 +20,14 @@ export class HabitudeSettingTab extends PluginSettingTab {
 	}
 
 	/**
-	 * Declarative settings for Obsidian 1.13.0+: makes the settings appear in
-	 * the native settings search. On 1.13+, display() is bypassed and only
-	 * this runs; display() below remains as the fallback for older versions
-	 * (minAppVersion is still 1.7.2).
+	 * Declarative settings (Obsidian 1.13.0+, the plugin's minAppVersion):
+	 * makes the settings appear in the native settings search.
 	 *
 	 * NOTE: the declarative SettingControl union has NO password/secret
 	 * variant, so a plain `control: { type: 'text' }` would render the API key
-	 * in clear text on 1.13+. The key therefore uses the `render` escape hatch
-	 * (the community-standard pattern) and hand-renders a password input —
-	 * exactly like the display() fallback. The definition still carries
-	 * name/desc so settings search keeps working.
+	 * in clear text. The key therefore uses the `render` escape hatch
+	 * (the community-standard pattern) and hand-renders a password input.
+	 * The definition still carries name/desc so settings search keeps working.
 	 */
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		const def = getProvider(this.plugin.settings.llmProvider);
@@ -163,10 +160,8 @@ export class HabitudeSettingTab extends PluginSettingTab {
 	}
 
 	/**
-	 * Shared wiring for the LLM API-key input. Used by BOTH the declarative
-	 * `render` escape hatch (Obsidian 1.13+) and the display() fallback
-	 * (older versions), so the key is always a masked password input and the
-	 * two paths cannot drift apart.
+	 * Shared wiring for the LLM API-key input, used by the declarative
+	 * `render` escape hatch: the key is always a masked password input.
 	 *
 	 * The input never pre-fills the saved key into the DOM: when a key is
 	 * stored the placeholder shows a mask hint instead.
@@ -183,121 +178,5 @@ export class HabitudeSettingTab extends PluginSettingTab {
 				this.plugin.settings.llmApiKey = value.trim();
 				await this.plugin.saveSettings();
 			});
-	}
-
-	/** Fallback for Obsidian < 1.13.0 (bypassed when getSettingDefinitions runs). */
-	display(): void {
-		const { containerEl } = this;
-		containerEl.empty();
-		const def = getProvider(this.plugin.settings.llmProvider);
-
-		new Setting(containerEl)
-			.setName(t('settings.dataFolder.name'))
-			.setDesc(t('settings.dataFolder.desc'))
-			.addText((text) =>
-				text
-					.setPlaceholder(t('settings.dataFolder.placeholder'))
-					.setValue(this.plugin.settings.dataFolder)
-					.onChange(async (value) => {
-						this.plugin.settings.dataFolder = value.trim() || 'Habitude';
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(t('settings.weekStart.name'))
-			.setDesc(t('settings.weekStart.desc'))
-			.addDropdown((drop) =>
-				drop
-					.addOption('1', t('settings.weekStart.monday'))
-					.addOption('0', t('settings.weekStart.sunday'))
-					.setValue(String(this.plugin.settings.weekStart))
-					.onChange(async (value) => {
-						this.plugin.settings.weekStart = value === '0' ? 0 : 1;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(t('settings.checkmarkColor.name'))
-			.setDesc(t('settings.checkmarkColor.desc'))
-			.addColorPicker((cp) =>
-				cp
-					.setValue(normalizeCheckmarkColor(this.plugin.settings.checkmarkColor))
-					.onChange(async (value) => {
-						this.plugin.settings.checkmarkColor = normalizeCheckmarkColor(value);
-						// saveSettings() re-renders open views → color updates live.
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(t('settings.provider.name'))
-			.setDesc(t('settings.provider.desc'))
-			.addDropdown((drop) => {
-				for (const id of LLM_PROVIDER_IDS) {
-					drop.addOption(id, t(`settings.provider.${id}`));
-				}
-				return drop.setValue(this.plugin.settings.llmProvider).onChange(async (value) => {
-					const id = (LLM_PROVIDER_IDS as string[]).includes(value) ? (value as LlmProviderId) : 'gemini';
-					this.plugin.settings.llmProvider = id;
-					await this.plugin.saveSettings();
-					// Re-render so the model placeholder / key hint follow the provider.
-					this.display();
-				});
-			});
-
-		new Setting(containerEl)
-			.setName(t('settings.llmKey.name'))
-			.setDesc(def.needsKey ? t('settings.llmKey.desc') : t('settings.llmKey.noKeyDesc'))
-			.addText((text) => {
-				this.configureLlmKeyInput(text);
-			});
-
-		new Setting(containerEl)
-			.setName(t('settings.llmModel.name'))
-			.setDesc(t('settings.llmModel.desc'))
-			.addText((text) =>
-				text
-					.setPlaceholder(def.modelPlaceholder)
-					.setValue(this.plugin.settings.llmModel)
-					.onChange(async (value) => {
-						this.plugin.settings.llmModel = value.trim();
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(t('settings.baseUrl.name'))
-			.setDesc(def.id === 'custom' ? t('settings.baseUrl.requiredDesc') : t('settings.baseUrl.desc'))
-			.addText((text) =>
-				text
-					.setPlaceholder(t('settings.baseUrl.placeholder', { url: def.defaultBaseUrl || '—' }))
-					.setValue(this.plugin.settings.llmBaseUrl)
-					.onChange(async (value) => {
-						this.plugin.settings.llmBaseUrl = value.trim();
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(t('settings.coachLanguage.name'))
-			.setDesc(t('settings.coachLanguage.desc'))
-			.addDropdown((drop) =>
-				drop
-					.addOption('auto', t('settings.coachLanguage.auto'))
-					.addOption('en', t('settings.coachLanguage.english'))
-					.addOption('ko', t('settings.coachLanguage.korean'))
-					.setValue(this.plugin.settings.coachLanguage)
-					.onChange(async (value) => {
-						this.plugin.settings.coachLanguage = value === 'ko' ? 'ko' : value === 'en' ? 'en' : 'auto';
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		// Info-only row: no control added, renders name + description.
-		new Setting(containerEl)
-			.setName(t('settings.sharing.name'))
-			.setDesc(t('settings.sharing.desc'));
 	}
 }

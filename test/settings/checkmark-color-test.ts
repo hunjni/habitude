@@ -9,8 +9,9 @@
 //   5. Declarative path (Obsidian 1.13+): a 'color' control with
 //      key 'checkmarkColor' and white defaultValue; setControlValue
 //      normalizes and persists.
-//   6. display() fallback (Obsidian < 1.13): a 'Checkmark color' row with a
-//      color picker whose change handler normalizes + persists.
+//   6. (0.4.2) The display() fallback for Obsidian < 1.13 was removed:
+//      settings now render only via getSettingDefinitions() and the plugin
+//      requires Obsidian 1.13.0+.
 //
 // Build & run:
 //   esbuild test/settings/checkmark-color-test.ts --bundle --platform=node \
@@ -156,40 +157,11 @@ async function testDeclarativePath(): Promise<void> {
 	check('setControlValue normalizes junk to white', plugin.settings.checkmarkColor === '#ffffff');
 }
 
-async function testDisplayFallback(): Promise<void> {
-	console.log('display() fallback (Obsidian < 1.13):');
-	setUiLocale('en');
-	Setting.instances.length = 0;
-	const plugin = makePlugin();
-	const tab = makeTab(plugin);
-	tab.containerEl = { empty() {} } as unknown as HTMLElement;
-	tab.display();
-
-	const row = Setting.instances.find((s) => s.name === 'Checkmark color');
-	check('checkmark-color row is rendered', !!row);
-	if (!row) return;
-	check('exactly one color picker', row.colorPickers.length === 1);
-	const picker = row.colorPickers[0];
-	if (!picker) return;
-	check('picker starts with current setting (white)', picker.getValue() === '#ffffff');
-
-	picker.__fireChange('#00ff00');
-	// onChange runs synchronously up to its first await; the fake
-	// saveSettings() increments saves before any await, so the effects are
-	// visible immediately (same pattern as settings-masking-test.ts).
-	check('picked color stored', plugin.settings.checkmarkColor === '#00ff00');
-	check('change persists via saveSettings', plugin.saves === 1);
-
-	picker.__fireChange('bogus');
-	check('bogus value normalized to white', plugin.settings.checkmarkColor === '#ffffff');
-}
-
 async function main(): Promise<void> {
 	await testDefaultsAndNormalize();
 	await testLoadSettingsMigration();
 	testI18n();
 	await testDeclarativePath();
-	await testDisplayFallback();
 	if (failures > 0) {
 		console.log(`\n${failures} check(s) FAILED`);
 		process.exit(1);

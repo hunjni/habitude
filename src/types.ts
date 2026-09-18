@@ -4,7 +4,7 @@
 // stored on-device, calling the provider directly. No Habitude backend, no
 // account, no sync.
 
-import { DEFAULT_COACH_MODEL, type LlmProviderId } from './coach/providers';
+import type { LlmProviderId } from './coach/providers';
 import type { CoachLanguage } from './coach/prompt';
 
 export interface Habit {
@@ -45,10 +45,6 @@ export interface PluginSettings {
 	llmModel: string;
 	/** base URL override; empty = provider default */
 	llmBaseUrl: string;
-	/** @deprecated migrated to llmApiKey (provider=gemini). Kept so existing users keep their key. */
-	geminiApiKey: string;
-	/** @deprecated migrated to llmModel. Kept so existing users keep their model. */
-	coachModel: string;
 	/** reply language for the coach */
 	coachLanguage: CoachLanguage;
 }
@@ -61,8 +57,6 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	llmApiKey: '',
 	llmModel: '',
 	llmBaseUrl: '',
-	geminiApiKey: '',
-	coachModel: DEFAULT_COACH_MODEL,
 	coachLanguage: 'auto',
 };
 

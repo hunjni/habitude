@@ -5,11 +5,18 @@ import { Notice, Plugin } from 'obsidian';
 import { t } from './i18n';
 import { DEFAULT_SETTINGS, HabitudeSettingTab, type PluginSettings } from './settings';
 import { normalizeCheckmarkColor } from './types';
+import { DEFAULT_COACH_MODEL } from './coach/providers';
 import { HabitStore } from './store';
 import { CHECKLIST_VIEW_TYPE, ChecklistView } from './ui/checklist-view';
 import { COACH_VIEW_TYPE, CoachView } from './ui/coach-view';
 import { registerCommands } from './commands';
 import { todayKey } from './utils/dates';
+
+/** Pre-0.4.2 stored keys. Read once for migration, then purged from data.json. */
+interface LegacySettings {
+	geminiApiKey?: string;
+	coachModel?: string;
+}
 
 export default class HabitudePlugin extends Plugin {
 	settings!: PluginSettings;
@@ -137,7 +144,11 @@ export default class HabitudePlugin extends Plugin {
 	}
 
 	async loadSettings(): Promise<void> {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, (await this.loadData()) as Partial<PluginSettings>);
+		// Legacy keys (pre-0.4.2) may still sit in stored data; they are read
+		// here, migrated once, and purged below. They no longer exist in
+		// PluginSettings/DEFAULT_SETTINGS.
+		const raw = (await this.loadData()) as Partial<PluginSettings> & LegacySettings;
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, raw);
 		// New setting: users without it (pre-checkmark-color versions) inherit
 		// the white default via Object.assign; invalid values are normalized
 		// so the check mark can never render with a broken color.
@@ -145,10 +156,19 @@ export default class HabitudePlugin extends Plugin {
 		// One-time migration: legacy geminiApiKey/coachModel → provider-neutral
 		// llm* settings. Only runs when the new key is empty and a legacy key
 		// exists, so existing users keep their coach working after the update.
-		if (!this.settings.llmApiKey && this.settings.geminiApiKey) {
+		let migrated = false;
+		if (!this.settings.llmApiKey && raw.geminiApiKey) {
 			this.settings.llmProvider = 'gemini';
-			this.settings.llmApiKey = this.settings.geminiApiKey;
-			this.settings.llmModel = this.settings.coachModel || 'gemini-2.5-flash';
+			this.settings.llmApiKey = raw.geminiApiKey;
+			this.settings.llmModel = raw.coachModel || DEFAULT_COACH_MODEL;
+			migrated = true;
+		}
+		// Purge legacy keys from stored data: this.settings was rebuilt from
+		// DEFAULT_SETTINGS (which has no legacy fields), so saving it drops
+		// them from data.json permanently.
+		delete (this.settings as unknown as Record<string, unknown>).geminiApiKey;
+		delete (this.settings as unknown as Record<string, unknown>).coachModel;
+		if (migrated || raw.geminiApiKey !== undefined || raw.coachModel !== undefined) {
 			await this.saveData(this.settings);
 		}
 	}

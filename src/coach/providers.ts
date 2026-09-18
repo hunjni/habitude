@@ -19,7 +19,7 @@ export type LlmProviderId =
 	| 'lmstudio'
 	| 'custom';
 
-/** Kept for the settings default of the deprecated coachModel field. */
+/** Default Gemini model id; also the fallback when migrating legacy settings. */
 export const DEFAULT_COACH_MODEL = 'gemini-2.5-flash';
 
 /** Cap on conversation history sent per request — the view keeps the full local transcript. */

@@ -1,12 +1,12 @@
 // Regression test: the AI coach API key must ALWAYS render as a masked
 // password input — never clear text.
 //
-// Two UI paths exist and both must mask:
-//   1. getSettingDefinitions() — Obsidian 1.13+ (display() is bypassed there).
-//      The declarative SettingControl union has NO password/secret variant, so
-//      a plain `control: { type: 'text' }` would expose the key in clear text.
-//      The key must use the `render` escape hatch instead.
-//   2. display() — the fallback for Obsidian < 1.13.
+// A single UI path exists and must mask:
+//   getSettingDefinitions() — Obsidian 1.13+ (the plugin's minAppVersion).
+//   The declarative SettingControl union has NO password/secret variant, so
+//   a plain `control: { type: 'text' }` would expose the key in clear text.
+//   The key must use the `render` escape hatch instead.
+//   (0.4.2) The display() fallback for Obsidian < 1.13 was removed.
 //
 // Only fake keys are used; nothing here touches the network.
 //
@@ -142,31 +142,8 @@ async function testDeclarativePath(): Promise<void> {
 	}
 }
 
-async function testDisplayFallback(): Promise<void> {
-	console.log('display() fallback (Obsidian < 1.13):');
-	Setting.instances.length = 0;
-	const plugin = makePlugin();
-	const tab = makeTab(plugin);
-	tab.containerEl = { empty() {} } as unknown as HTMLElement;
-	tab.display();
-
-	const row = Setting.instances.find((s) => /api key/i.test(s.name));
-	check('API-key row is rendered', !!row);
-	if (!row) return;
-	check('exactly one text input', row.texts.length === 1);
-	const input = row.texts[0];
-	if (!input) return;
-	check('input type is password (masked)', input.inputEl.type === 'password', ` (was ${input.inputEl.type})`);
-	check('saved key is never pre-filled into the DOM', input.setValueCalls.length === 0);
-
-	input.__fireChange(`  ${FAKE_KEY}  `);
-	check('typed value is trimmed before storing', plugin.settings.llmApiKey === FAKE_KEY);
-	check('change persists via saveSettings', plugin.saves === 1);
-}
-
 async function main(): Promise<void> {
 	await testDeclarativePath();
-	await testDisplayFallback();
 	if (failures > 0) {
 		console.log(`\n${failures} check(s) FAILED`);
 		process.exit(1);
