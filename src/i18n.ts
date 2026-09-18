@@ -38,13 +38,30 @@ const en: Dict = {
 	'settings.weekStart.desc': 'First day of the week in the checklist grid.',
 	'settings.weekStart.monday': 'Monday',
 	'settings.weekStart.sunday': 'Sunday',
-	'settings.apiKey.name': 'Gemini API key (AI coach, optional)',
-	'settings.apiKey.desc':
-		'Your own free Gemini key (Google AI Studio). Stored only on this device; sent only to Google AI, never to Habitude.',
-	'settings.apiKey.savedPlaceholder': '•••••••• (key saved)',
-	'settings.apiKey.emptyPlaceholder': 'Paste key to enable the AI coach',
-	'settings.coachModel.name': 'Coach model',
-	'settings.coachModel.desc': 'Model ID used by the AI coach.',
+	'settings.provider.name': 'AI provider',
+	'settings.provider.desc':
+		'Which LLM service the AI coach talks to. Your key and chats are sent only to this provider — never to Habitude.',
+	'settings.provider.gemini': 'Google Gemini',
+	'settings.provider.openai': 'OpenAI',
+	'settings.provider.anthropic': 'Anthropic Claude',
+	'settings.provider.openrouter': 'OpenRouter',
+	'settings.provider.ollama': 'Ollama (local)',
+	'settings.provider.lmstudio': 'LM Studio (local)',
+	'settings.provider.custom': 'Custom (OpenAI-compatible)',
+	'settings.llmKey.name': 'API key (AI coach, optional)',
+	'settings.llmKey.desc':
+		'Your own key for the selected AI provider. Stored only on this device; sent only to that provider, never to Habitude.',
+	'settings.llmKey.noKeyDesc':
+		'No key needed — the selected provider runs on your own machine. Any key saved here is ignored.',
+	'settings.llmKey.savedPlaceholder': '•••••••• (key saved)',
+	'settings.llmKey.emptyPlaceholder': 'Paste key to enable the AI coach',
+	'settings.llmModel.name': 'Coach model',
+	'settings.llmModel.desc': 'Model ID used by the AI coach. Empty uses the provider default.',
+	'settings.baseUrl.name': 'API base URL',
+	'settings.baseUrl.desc': 'Optional override for the provider endpoint. Empty uses the provider default.',
+	'settings.baseUrl.requiredDesc':
+		'Required for the custom provider — the base URL of your OpenAI-compatible endpoint.',
+	'settings.baseUrl.placeholder': 'Default: {url}',
 	'settings.coachLanguage.name': 'Coach language',
 	'settings.coachLanguage.desc': 'Reply language for the AI coach.',
 	'settings.coachLanguage.auto': 'Auto (match me)',
@@ -75,24 +92,26 @@ const en: Dict = {
 	'checklist.toggleAria': '{title} on {date}',
 
 	// Coach view
-	'coach.setupTitle': 'AI coach — free with your own key',
+	'coach.setupTitle': 'AI coach — bring your own key',
 	'coach.setupDesc':
-		'Bring a free Gemini API key and chat with a coach that knows your habits — your streaks, weekly rates, and weak days are shared with the model automatically as statistics.',
+		'Pick an AI provider and chat with a coach that knows your habits — your streaks, weekly rates, and weak days are shared with the model automatically as statistics.',
 	'coach.setupStep1Prefix': 'Get a free key at ',
 	'coach.setupStep1Link': 'Google AI Studio',
 	'coach.setupStep1Suffix': '.',
 	'coach.setupStep2':
 		'Paste it below. It stays on this device — it is only ever sent to Google, never to Habitude.',
-	'coach.keyPlaceholder': 'Paste Gemini API key',
-	'coach.saveKey': 'Save key & start',
-	'coach.pasteKeyFirst': 'Paste your Gemini API key first.',
+	'coach.keyPlaceholder': 'Paste API key',
+	'coach.saveKey': 'Save & start',
+	'coach.pasteKeyFirst': 'Paste your API key first.',
+	'coach.getKeyLink': 'Get a key',
+	'coach.noKeyNeeded': 'No key needed — the selected provider runs locally on this device.',
 	'coach.headerTitle': 'AI Coach',
 	'coach.newChat': 'New chat',
 	'coach.inputPlaceholder': 'Ask your coach…',
 	'coach.send': 'Send',
-	'coach.footnote': 'Your key and chats stay on this device. Requests go directly to Google AI.',
+	'coach.footnote': 'Your key and chats stay on this device. Requests go directly to {provider}.',
 	'coach.removeKey': 'Remove key',
-	'coach.addKeyFirst': 'Add your Gemini API key first.',
+	'coach.addKeyFirst': 'Add your API key first.',
 	'coach.thinking': 'Coach is thinking…',
 	'coach.genericError': 'Something went wrong. Please try again.',
 	'coach.fallbackGreeting': "Hi, I'm your Habitude Coach. What's on your mind?",
@@ -108,10 +127,10 @@ const en: Dict = {
 	'share.linkCopied': 'Share link copied to clipboard.',
 	'share.linkFallback': 'Share link: {url}',
 
-	// User-visible coach (Gemini) errors
+	// User-visible coach errors
 	'coach.error.rateLimit': 'Rate limit hit (free tier). Wait a minute and try again.',
-	'coach.error.httpError': 'Google AI returned an error (status {status}). Please try again.',
-	'coach.error.network': 'Could not reach Google AI. Check your connection. ({detail})',
+	'coach.error.httpError': '{provider} returned an error (status {status}). Please try again.',
+	'coach.error.network': 'Could not reach the AI provider. Check your connection. ({detail})',
 	'coach.error.unreadable': 'Got an unreadable response from the model. Please try again.',
 	'coach.error.authRejected':
 		'That API key was rejected or lacks access. Double-check it in Settings → Habitude checklist.',
@@ -119,6 +138,10 @@ const en: Dict = {
 		'The API key is invalid or lacks access. Check it in Settings → Habitude checklist.',
 	'coach.error.modelError': 'Model error: {detail}',
 	'coach.error.emptyReply': 'The model returned an empty reply. Please try again.',
+	'coach.error.baseUrlRequired':
+		'Set a base URL for the custom provider in Settings → Habitude checklist.',
+	'coach.error.modelRequired':
+		'Set a model ID for the custom provider in Settings → Habitude checklist.',
 
 	// Date labels
 	'dates.weekRange': '{sm} {sd} – {em} {ed}',
@@ -152,13 +175,28 @@ const ko: Dict = {
 	'settings.weekStart.desc': '체크리스트 그리드에서 한 주의 시작 요일.',
 	'settings.weekStart.monday': '월요일',
 	'settings.weekStart.sunday': '일요일',
-	'settings.apiKey.name': 'Gemini API 키 (AI 코치, 선택)',
-	'settings.apiKey.desc':
-		'본인의 무료 Gemini 키(Google AI Studio). 이 기기에만 저장되며 Google AI에만 전송되고, Habitude로는 절대 전송되지 않습니다.',
-	'settings.apiKey.savedPlaceholder': '•••••••• (키 저장됨)',
-	'settings.apiKey.emptyPlaceholder': 'AI 코치를 켜려면 키를 붙여넣으세요',
-	'settings.coachModel.name': '코치 모델',
-	'settings.coachModel.desc': 'AI 코치가 사용하는 모델 ID.',
+	'settings.provider.name': 'AI 제공자',
+	'settings.provider.desc':
+		'AI 코치가 대화할 LLM 서비스. 키와 대화 내용은 이 제공자에게만 전송되며 Habitude로는 절대 전송되지 않습니다.',
+	'settings.provider.gemini': 'Google Gemini',
+	'settings.provider.openai': 'OpenAI',
+	'settings.provider.anthropic': 'Anthropic Claude',
+	'settings.provider.openrouter': 'OpenRouter',
+	'settings.provider.ollama': 'Ollama (로컬)',
+	'settings.provider.lmstudio': 'LM Studio (로컬)',
+	'settings.provider.custom': '사용자 지정 (OpenAI 호환)',
+	'settings.llmKey.name': 'API 키 (AI 코치, 선택)',
+	'settings.llmKey.desc':
+		'선택한 AI 제공자의 본인 키. 이 기기에만 저장되며 해당 제공자에게만 전송되고 Habitude로는 절대 전송되지 않습니다.',
+	'settings.llmKey.noKeyDesc': '키 불필요 — 선택한 제공자는 이 기기에서 직접 실행됩니다. 여기에 저장한 키는 무시됩니다.',
+	'settings.llmKey.savedPlaceholder': '•••••••• (키 저장됨)',
+	'settings.llmKey.emptyPlaceholder': 'AI 코치를 켜려면 키를 붙여넣으세요',
+	'settings.llmModel.name': '코치 모델',
+	'settings.llmModel.desc': 'AI 코치가 사용하는 모델 ID. 비워 두면 제공자 기본값을 사용합니다.',
+	'settings.baseUrl.name': 'API Base URL',
+	'settings.baseUrl.desc': '제공자 엔드포인트 재정의(선택). 비워 두면 제공자 기본값을 사용합니다.',
+	'settings.baseUrl.requiredDesc': '사용자 지정 제공자는 필수 — OpenAI 호환 엔드포인트의 Base URL을 입력하세요.',
+	'settings.baseUrl.placeholder': '기본값: {url}',
 	'settings.coachLanguage.name': '코치 언어',
 	'settings.coachLanguage.desc': 'AI 코치의 답변 언어.',
 	'settings.coachLanguage.auto': '자동 (나와 맞춤)',
@@ -189,24 +227,26 @@ const ko: Dict = {
 	'checklist.toggleAria': '{date}의 {title}',
 
 	// Coach view
-	'coach.setupTitle': 'AI 코치 — 본인 키로 무료 사용',
+	'coach.setupTitle': 'AI 코치 — 본인 키로 사용',
 	'coach.setupDesc':
-		'무료 Gemini API 키를 가져와 습관을 아는 코치와 대화하세요. 스트릭, 주간 완료율, 약한 요일 같은 통계가 모델에 자동으로 전달됩니다.',
+		'AI 제공자를 선택하고 습관을 아는 코치와 대화하세요. 스트릭, 주간 완료율, 약한 요일 같은 통계가 모델에 자동으로 전달됩니다.',
 	'coach.setupStep1Prefix': '',
 	'coach.setupStep1Link': 'Google AI Studio',
 	'coach.setupStep1Suffix': '에서 무료 키를 받으세요.',
 	'coach.setupStep2':
 		'아래에 붙여넣으세요. 이 기기에만 보관되며, Google에만 전송되고 Habitude로는 절대 전송되지 않습니다.',
-	'coach.keyPlaceholder': 'Gemini API 키 붙여넣기',
-	'coach.saveKey': '키 저장하고 시작',
-	'coach.pasteKeyFirst': '먼저 Gemini API 키를 붙여넣으세요.',
+	'coach.keyPlaceholder': 'API 키 붙여넣기',
+	'coach.saveKey': '저장하고 시작',
+	'coach.pasteKeyFirst': '먼저 API 키를 붙여넣으세요.',
+	'coach.getKeyLink': '키 발급받기',
+	'coach.noKeyNeeded': '키가 필요 없습니다 — 선택한 제공자는 이 기기에서 로컬로 실행됩니다.',
 	'coach.headerTitle': 'AI 코치',
 	'coach.newChat': '새 대화',
 	'coach.inputPlaceholder': '코치에게 물어보세요…',
 	'coach.send': '전송',
-	'coach.footnote': '키와 대화 내용은 이 기기에만 보관됩니다. 요청은 Google AI로 직접 전송됩니다.',
+	'coach.footnote': '키와 대화 내용은 이 기기에만 보관됩니다. 요청은 {provider}(으)로 직접 전송됩니다.',
 	'coach.removeKey': '키 삭제',
-	'coach.addKeyFirst': '먼저 Gemini API 키를 추가하세요.',
+	'coach.addKeyFirst': '먼저 API 키를 추가하세요.',
 	'coach.thinking': '코치가 생각 중…',
 	'coach.genericError': '문제가 발생했습니다. 다시 시도하세요.',
 	'coach.fallbackGreeting': '안녕하세요, Habitude 코치입니다. 무슨 고민이 있으세요?',
@@ -222,10 +262,10 @@ const ko: Dict = {
 	'share.linkCopied': '공유 링크가 클립보드에 복사되었습니다.',
 	'share.linkFallback': '공유 링크: {url}',
 
-	// User-visible coach (Gemini) errors
+	// User-visible coach errors
 	'coach.error.rateLimit': '요청 한도에 도달했습니다(무료 등급). 1분 후 다시 시도하세요.',
-	'coach.error.httpError': 'Google AI에서 오류가 발생했습니다(상태 {status}). 다시 시도하세요.',
-	'coach.error.network': 'Google AI에 연결할 수 없습니다. 연결을 확인하세요. ({detail})',
+	'coach.error.httpError': '{provider}에서 오류가 발생했습니다(상태 {status}). 다시 시도하세요.',
+	'coach.error.network': 'AI 제공자에 연결할 수 없습니다. 연결을 확인하세요. ({detail})',
 	'coach.error.unreadable': '모델 응답을 읽을 수 없습니다. 다시 시도하세요.',
 	'coach.error.authRejected':
 		'이 API 키가 거부되었거나 접근 권한이 없습니다. 설정 → Habitude checklist에서 확인하세요.',
@@ -233,6 +273,8 @@ const ko: Dict = {
 		'API 키가 유효하지 않거나 접근 권한이 없습니다. 설정 → Habitude checklist에서 확인하세요.',
 	'coach.error.modelError': '모델 오류: {detail}',
 	'coach.error.emptyReply': '모델이 빈 응답을 반환했습니다. 다시 시도하세요.',
+	'coach.error.baseUrlRequired': '설정 → Habitude checklist에서 사용자 지정 제공자의 Base URL을 입력하세요.',
+	'coach.error.modelRequired': '설정 → Habitude checklist에서 사용자 지정 제공자의 모델 ID를 입력하세요.',
 
 	// Date labels
 	'dates.weekRange': '{sm} {sd}일 – {em} {ed}일',

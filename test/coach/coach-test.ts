@@ -12,7 +12,7 @@ import { createTestApp } from '../stress/mock-obsidian';
 import { HabitStore } from '../../src/store';
 import { buildTwinLiteContext, renderContextBlock } from '../../src/coach/context';
 import { buildGreeting, buildSystemPrompt, COACH_PERSONA } from '../../src/coach/prompt';
-import { chatCompletion, CoachError, DEFAULT_COACH_MODEL } from '../../src/coach/gemini';
+import { chatCompletion, CoachError, DEFAULT_COACH_MODEL } from '../../src/coach/providers';
 import { addDays, todayKey } from '../../src/utils/dates';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
@@ -122,7 +122,7 @@ async function testClient(): Promise<void> {
 
 	const reply = await chatCompletion(
 		{
-			apiKey: 'test-key-123',
+			provider: 'gemini', baseUrl: '', apiKey: 'test-key-123',
 			model: DEFAULT_COACH_MODEL,
 			systemPrompt: 'SYS',
 			history: [{ role: 'user', text: 'hi' }],
@@ -142,7 +142,7 @@ async function testClient(): Promise<void> {
 	const expectKind = async (kind: string, code: number, message: string) => {
 		try {
 			await chatCompletion(
-				{ apiKey: 'k', model: 'm', systemPrompt: 's', history: [], message: 'x' },
+				{ provider: 'gemini', baseUrl: '', apiKey: 'k', model: 'm', systemPrompt: 's', history: [], message: 'x' },
 				errTransport(code, message) as never,
 			);
 			check(`${kind} error thrown`, false);
@@ -157,7 +157,7 @@ async function testClient(): Promise<void> {
 
 	try {
 		await chatCompletion(
-			{ apiKey: 'k', model: 'm', systemPrompt: 's', history: [], message: 'x' },
+			{ provider: 'gemini', baseUrl: '', apiKey: 'k', model: 'm', systemPrompt: 's', history: [], message: 'x' },
 			(async () => {
 				throw new Error('socket hangup');
 			}) as never,
@@ -170,7 +170,7 @@ async function testClient(): Promise<void> {
 	const emptyTransport = async () => ({ text: JSON.stringify({ candidates: [] }) });
 	try {
 		await chatCompletion(
-			{ apiKey: 'k', model: 'm', systemPrompt: 's', history: [], message: 'x' },
+			{ provider: 'gemini', baseUrl: '', apiKey: 'k', model: 'm', systemPrompt: 's', history: [], message: 'x' },
 			emptyTransport as never,
 		);
 		check('empty reply error thrown', false);

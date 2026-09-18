@@ -247,6 +247,17 @@
 	margin-top: 8px;
 }
 
+.habitude-coach-field {
+	display: block;
+	margin-top: 12px;
+	font-weight: 600;
+}
+
+.habitude-coach-provider {
+	width: 100%;
+	margin-top: 4px;
+}
+
 .habitude-coach-row {
 	margin-top: 8px;
 }

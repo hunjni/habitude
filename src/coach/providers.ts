@@ -1,0 +1,411 @@
+// Multi-provider BYOK LLM client for the AI coach.
+//
+// The user brings their own API key (or none, for local providers). The key
+// is stored only in this device's plugin data and is sent ONLY to the
+// selected provider — never to Habitude servers.
+//
+// Non-streaming chat completions: simpler and robust inside Obsidian.
+// requestUrl is injectable so unit tests never touch the network.
+
+import { requestUrl } from 'obsidian';
+import { t } from '../i18n';
+
+export type LlmProviderId =
+	| 'gemini'
+	| 'openai'
+	| 'anthropic'
+	| 'openrouter'
+	| 'ollama'
+	| 'lmstudio'
+	| 'custom';
+
+/** Kept for the settings default of the deprecated coachModel field. */
+export const DEFAULT_COACH_MODEL = 'gemini-2.5-flash';
+
+/** Cap on conversation history sent per request — the view keeps the full local transcript. */
+export const MAX_HISTORY_BLOCKS = 20;
+
+export interface ChatMessage {
+	role: 'user' | 'model';
+	text: string;
+}
+
+type RequestFn = typeof requestUrl;
+
+export class CoachError extends Error {
+	readonly kind: 'auth' | 'quota' | 'network' | 'api';
+	constructor(kind: CoachError['kind'], message: string) {
+		super(message);
+		this.kind = kind;
+	}
+}
+
+export interface BuildRequestArgs {
+	baseUrl: string;
+	apiKey: string;
+	model: string;
+	systemPrompt: string;
+	history: ChatMessage[];
+	message: string;
+}
+
+export interface BuiltRequest {
+	url: string;
+	headers: Record<string, string>;
+	body: string;
+}
+
+export interface ProviderDef {
+	id: LlmProviderId;
+	/** Short English label, used in error messages. */
+	label: string;
+	/** Whether the provider requires an API key. */
+	needsKey: boolean;
+	defaultBaseUrl: string;
+	defaultModel: string;
+	modelPlaceholder: string;
+	/** Key issuance URL; '' for local providers and custom endpoints. */
+	keyUrl: string;
+	buildRequest: (args: BuildRequestArgs) => BuiltRequest;
+	/** Extract the assistant text from a raw response body (JSON text). */
+	parseResponse: (raw: string) => string;
+}
+
+/**
+ * Join a base URL with an API path. Strips trailing slashes and a trailing
+ * '/v1' the user may have included, so user overrides never produce '/v1/v1'.
+ */
+function joinApiPath(base: string, path: string): string {
+	const b = (base || '').replace(/\/+$/, '').replace(/\/v1$/, '');
+	return `${b}${path}`;
+}
+
+type OpenAiMessage = { role: 'system' | 'user' | 'assistant'; content: string };
+
+/** Shared body builder for OpenAI-compatible chat completion endpoints. */
+function buildOpenAiStyleRequest(args: BuildRequestArgs, extraHeaders: Record<string, string> = {}): BuiltRequest {
+	const messages: OpenAiMessage[] = [
+		{ role: 'system', content: args.systemPrompt },
+		...args.history.map(
+			(m): OpenAiMessage => ({ role: m.role === 'model' ? 'assistant' : 'user', content: m.text }),
+		),
+		{ role: 'user', content: args.message },
+	];
+	const headers: Record<string, string> = {
+		'Content-Type': 'application/json',
+		...extraHeaders,
+	};
+	if (args.apiKey) {
+		headers['Authorization'] = `Bearer ${args.apiKey}`;
+	}
+	return {
+		url: joinApiPath(args.baseUrl, '/v1/chat/completions'),
+		headers,
+		body: JSON.stringify({ model: args.model, messages, temperature: 0.7, max_tokens: 1024 }),
+	};
+}
+
+/** Extract assistant text from an OpenAI-style chat completion body. */
+function parseOpenAiStyleResponse(raw: string): string {
+	const data = JSON.parse(raw) as {
+		choices?: Array<{ message?: { content?: string } }>;
+	};
+	return data.choices?.[0]?.message?.content ?? '';
+}
+
+interface GenerateContentResponse {
+	candidates?: Array<{
+		content?: { parts?: Array<{ text?: string }> };
+		finishReason?: string;
+	}>;
+	error?: { code?: number; message?: string; status?: string };
+}
+
+const geminiProvider: ProviderDef = {
+	id: 'gemini',
+	label: 'Google Gemini',
+	needsKey: true,
+	defaultBaseUrl: 'https://generativelanguage.googleapis.com',
+	defaultModel: 'gemini-2.5-flash',
+	modelPlaceholder: 'gemini-2.5-flash',
+	keyUrl: 'https://aistudio.google.com/apikey',
+	buildRequest: (args) => {
+		const host = (args.baseUrl || '').replace(/\/+$/, '');
+		const contents = [
+			...args.history.map((m) => ({ role: m.role, parts: [{ text: m.text }] })),
+			{ role: 'user', parts: [{ text: args.message }] },
+		];
+		return {
+			url: `${host}/v1beta/models/${encodeURIComponent(args.model)}:generateContent`,
+			headers: { 'Content-Type': 'application/json', 'x-goog-api-key': args.apiKey },
+			body: JSON.stringify({
+				system_instruction: { parts: [{ text: args.systemPrompt }] },
+				contents,
+				generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
+			}),
+		};
+	},
+	parseResponse: (raw) => {
+		const data = JSON.parse(raw) as GenerateContentResponse;
+		return data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
+	},
+};
+
+const openaiProvider: ProviderDef = {
+	id: 'openai',
+	label: 'OpenAI',
+	needsKey: true,
+	defaultBaseUrl: 'https://api.openai.com',
+	defaultModel: 'gpt-4o-mini',
+	modelPlaceholder: 'gpt-4o-mini',
+	keyUrl: 'https://platform.openai.com/api-keys',
+	buildRequest: (args) => buildOpenAiStyleRequest(args),
+	parseResponse: parseOpenAiStyleResponse,
+};
+
+/**
+ * Anthropic message rules: roles are user/assistant only, messages must
+ * start with a user turn, and consecutive same-role turns are not allowed.
+ * Normalize from our user/model history: map model→assistant, merge
+ * consecutive same-role turns (joined with a blank line), drop leading
+ * assistant turns.
+ */
+function normalizeAnthropicMessages(
+	history: ChatMessage[],
+	message: string,
+): Array<{ role: 'user' | 'assistant'; content: string }> {
+	const msgs: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+	const mapRole = (m: ChatMessage): { role: 'user' | 'assistant'; content: string } => ({
+		role: m.role === 'model' ? 'assistant' : 'user',
+		content: m.text,
+	});
+	const all: Array<{ role: 'user' | 'assistant'; content: string }> = [
+		...history.map(mapRole),
+		{ role: 'user', content: message },
+	];
+	for (const m of all) {
+		const last = msgs[msgs.length - 1];
+		if (last && last.role === m.role) {
+			last.content += `\n\n${m.content}`;
+		} else {
+			msgs.push({ ...m });
+		}
+	}
+	while (msgs.length > 0 && msgs[0]?.role === 'assistant') {
+		msgs.shift();
+	}
+	return msgs;
+}
+
+const anthropicProvider: ProviderDef = {
+	id: 'anthropic',
+	label: 'Anthropic',
+	needsKey: true,
+	defaultBaseUrl: 'https://api.anthropic.com',
+	defaultModel: 'claude-3-5-sonnet-latest',
+	modelPlaceholder: 'claude-3-5-sonnet-latest',
+	keyUrl: 'https://console.anthropic.com/settings/keys',
+	buildRequest: (args) => ({
+		url: joinApiPath(args.baseUrl, '/v1/messages'),
+		headers: {
+			'Content-Type': 'application/json',
+			'x-api-key': args.apiKey,
+			'anthropic-version': '2023-06-01',
+		},
+		body: JSON.stringify({
+			model: args.model,
+			max_tokens: 1024,
+			system: args.systemPrompt,
+			messages: normalizeAnthropicMessages(args.history, args.message),
+		}),
+	}),
+	parseResponse: (raw) => {
+		const data = JSON.parse(raw) as {
+			content?: Array<{ type?: string; text?: string }>;
+		};
+		return (data.content ?? []).filter((c) => c.type === 'text').map((c) => c.text ?? '').join('');
+	},
+};
+
+const openrouterProvider: ProviderDef = {
+	id: 'openrouter',
+	label: 'OpenRouter',
+	needsKey: true,
+	defaultBaseUrl: 'https://openrouter.ai/api',
+	defaultModel: 'openai/gpt-4o-mini',
+	modelPlaceholder: 'openai/gpt-4o-mini',
+	keyUrl: 'https://openrouter.ai/keys',
+	buildRequest: (args) =>
+		buildOpenAiStyleRequest(args, {
+			'HTTP-Referer': 'https://habitude.ai',
+			'X-Title': 'Habitude Checklist',
+		}),
+	parseResponse: parseOpenAiStyleResponse,
+};
+
+const ollamaProvider: ProviderDef = {
+	id: 'ollama',
+	label: 'Ollama',
+	needsKey: false,
+	defaultBaseUrl: 'http://localhost:11434/v1',
+	defaultModel: 'llama3.1',
+	modelPlaceholder: 'llama3.1',
+	keyUrl: '',
+	buildRequest: (args) => buildOpenAiStyleRequest(args),
+	parseResponse: parseOpenAiStyleResponse,
+};
+
+const lmstudioProvider: ProviderDef = {
+	id: 'lmstudio',
+	label: 'LM Studio',
+	needsKey: false,
+	defaultBaseUrl: 'http://localhost:1234/v1',
+	defaultModel: 'local-model',
+	modelPlaceholder: 'local-model',
+	keyUrl: '',
+	buildRequest: (args) => buildOpenAiStyleRequest(args),
+	parseResponse: parseOpenAiStyleResponse,
+};
+
+const customProvider: ProviderDef = {
+	id: 'custom',
+	label: 'Custom',
+	needsKey: false,
+	defaultBaseUrl: '',
+	defaultModel: '',
+	modelPlaceholder: 'model-id',
+	keyUrl: '',
+	buildRequest: (args) => buildOpenAiStyleRequest(args),
+	parseResponse: parseOpenAiStyleResponse,
+};
+
+const PROVIDERS: Record<LlmProviderId, ProviderDef> = {
+	gemini: geminiProvider,
+	openai: openaiProvider,
+	anthropic: anthropicProvider,
+	openrouter: openrouterProvider,
+	ollama: ollamaProvider,
+	lmstudio: lmstudioProvider,
+	custom: customProvider,
+};
+
+export const LLM_PROVIDER_IDS: LlmProviderId[] = [
+	'gemini',
+	'openai',
+	'anthropic',
+	'openrouter',
+	'ollama',
+	'lmstudio',
+	'custom',
+];
+
+/** Unknown ids fall back to Gemini (the historical default). */
+export function getProvider(id: string): ProviderDef {
+	return (PROVIDERS as Record<string, ProviderDef>)[id] ?? PROVIDERS.gemini;
+}
+
+function classifyTransportError(e: unknown, providerLabel: string): CoachError {
+	// Obsidian's requestUrl REJECTS on HTTP 4xx/5xx with the status on the
+	// error — classify those instead of blaming the connection.
+	const status =
+		typeof (e as { status?: unknown } | null | undefined)?.status === 'number'
+			? (e as { status: number }).status
+			: 0;
+	if (status === 400 || status === 401 || status === 403) {
+		return new CoachError('auth', t('coach.error.authRejected'));
+	}
+	if (status === 429) {
+		return new CoachError('quota', t('coach.error.rateLimit'));
+	}
+	if (status >= 400) {
+		return new CoachError('api', t('coach.error.httpError', { provider: providerLabel, status }));
+	}
+	return new CoachError('network', t('coach.error.network', { detail: String(e) }));
+}
+
+interface ErrorBody {
+	error?: { code?: unknown; message?: unknown; type?: unknown };
+}
+
+function classifyBodyError(data: ErrorBody, providerLabel: string): CoachError {
+	const err = data.error ?? {};
+	const code = err.code;
+	const msg = typeof err.message === 'string' ? err.message : 'Unknown error';
+	const typeTag = typeof err.type === 'string' ? err.type : '';
+	const codeStr = (typeof code === 'string' || typeof code === 'number' ? String(code) : typeTag).toLowerCase();
+	if (
+		(code === 400 && /api key/i.test(msg)) ||
+		code === 401 ||
+		code === 403 ||
+		codeStr === 'authentication_error' ||
+		codeStr === 'invalid_api_key' ||
+		codeStr === 'invalid x-api-key'
+	) {
+		throw new CoachError('auth', code === 401 || code === 403 ? t('coach.error.authInvalid') : t('coach.error.authRejected'));
+	}
+	if (code === 429 || codeStr === 'rate_limit_error') {
+		throw new CoachError('quota', t('coach.error.rateLimit'));
+	}
+	// Keep the provider label out of the generic model error: the detail
+	// usually names the provider already.
+	void providerLabel;
+	throw new CoachError('api', t('coach.error.modelError', { detail: msg }));
+}
+
+export async function chatCompletion(
+	args: {
+		provider: LlmProviderId;
+		apiKey: string;
+		baseUrl: string;
+		model: string;
+		systemPrompt: string;
+		history: ChatMessage[];
+		message: string;
+	},
+	requestFn: RequestFn = requestUrl,
+): Promise<string> {
+	const def = getProvider(args.provider);
+	const resolvedBase = (args.baseUrl || '').trim() || def.defaultBaseUrl;
+	if (!resolvedBase) {
+		throw new CoachError('api', t('coach.error.baseUrlRequired'));
+	}
+	const model = (args.model || '').trim() || def.defaultModel;
+	if (!model) {
+		throw new CoachError('api', t('coach.error.modelRequired'));
+	}
+	// Sliding window: bound the request size on long conversations.
+	const recent = args.history.slice(-MAX_HISTORY_BLOCKS);
+	const { url, headers, body } = def.buildRequest({
+		baseUrl: resolvedBase,
+		apiKey: args.apiKey,
+		model,
+		systemPrompt: args.systemPrompt,
+		history: recent,
+		message: args.message,
+	});
+
+	let raw: string;
+	try {
+		const res = await requestFn({ url, method: 'POST', headers, body });
+		raw = res.text;
+	} catch (e) {
+		throw classifyTransportError(e, def.label);
+	}
+
+	let data: unknown;
+	try {
+		data = JSON.parse(raw) as unknown;
+	} catch {
+		throw new CoachError('api', t('coach.error.unreadable'));
+	}
+
+	if (data && typeof data === 'object' && 'error' in data && (data as ErrorBody).error) {
+		throw classifyBodyError(data as ErrorBody, def.label);
+	}
+
+	const text = def.parseResponse(raw);
+	if (!text.trim()) {
+		throw new CoachError('api', t('coach.error.emptyReply'));
+	}
+	return text.trim();
+}

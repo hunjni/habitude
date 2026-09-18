@@ -1,12 +1,14 @@
 // Settings: interface, defaults, and the settings tab UI.
-// Local-first: checklist settings plus optional BYOK Gemini key for the AI
-// coach. The key is stored only in this device's plugin data and is sent
-// only to Google AI — never to Habitude servers.
+// Local-first: checklist settings plus an optional BYOK API key for the AI
+// coach (any supported LLM provider). The key is stored only in this
+// device's plugin data and is sent only to the selected provider — never
+// to Habitude servers.
 
 import { App, PluginSettingTab, Setting, TextComponent } from 'obsidian';
 import type { SettingDefinitionItem } from 'obsidian';
 import { t } from './i18n';
 import type HabitudePlugin from './main';
+import { getProvider, LLM_PROVIDER_IDS, type LlmProviderId } from './coach/providers';
 import { DEFAULT_SETTINGS, type PluginSettings } from './types';
 
 export type { PluginSettings };
@@ -31,6 +33,11 @@ export class HabitudeSettingTab extends PluginSettingTab {
 	 * name/desc so settings search keeps working.
 	 */
 	getSettingDefinitions(): SettingDefinitionItem[] {
+		const def = getProvider(this.plugin.settings.llmProvider);
+		const providerOptions: Record<string, string> = {};
+		for (const id of LLM_PROVIDER_IDS) {
+			providerOptions[id] = t(`settings.provider.${id}`);
+		}
 		return [
 			{
 				name: t('settings.dataFolder.name'),
@@ -53,22 +60,42 @@ export class HabitudeSettingTab extends PluginSettingTab {
 				},
 			},
 			{
-				name: t('settings.apiKey.name'),
-				desc: t('settings.apiKey.desc'),
-				render: (setting) => {
-					// Escape hatch: no declarative password control exists, so the
-					// key is rendered as a masked input on 1.13+ too.
-					setting.addText((text) => this.configureApiKeyInput(text));
+				name: t('settings.provider.name'),
+				desc: t('settings.provider.desc'),
+				control: {
+					type: 'dropdown',
+					key: 'llmProvider',
+					options: providerOptions,
+					defaultValue: DEFAULT_SETTINGS.llmProvider,
 				},
 			},
 			{
-				name: t('settings.coachModel.name'),
-				desc: t('settings.coachModel.desc'),
+				name: t('settings.llmKey.name'),
+				desc: def.needsKey ? t('settings.llmKey.desc') : t('settings.llmKey.noKeyDesc'),
+				render: (setting) => {
+					// Escape hatch: no declarative password control exists, so the
+					// key is rendered as a masked input on 1.13+ too.
+					setting.addText((text) => this.configureLlmKeyInput(text));
+				},
+			},
+			{
+				name: t('settings.llmModel.name'),
+				desc: t('settings.llmModel.desc'),
 				control: {
 					type: 'text',
-					key: 'coachModel',
-					placeholder: DEFAULT_SETTINGS.coachModel,
-					defaultValue: DEFAULT_SETTINGS.coachModel,
+					key: 'llmModel',
+					placeholder: def.modelPlaceholder,
+					defaultValue: DEFAULT_SETTINGS.llmModel,
+				},
+			},
+			{
+				name: t('settings.baseUrl.name'),
+				desc: def.id === 'custom' ? t('settings.baseUrl.requiredDesc') : t('settings.baseUrl.desc'),
+				control: {
+					type: 'text',
+					key: 'llmBaseUrl',
+					placeholder: t('settings.baseUrl.placeholder', { url: def.defaultBaseUrl || '—' }),
+					defaultValue: DEFAULT_SETTINGS.llmBaseUrl,
 				},
 			},
 			{
@@ -105,11 +132,19 @@ export class HabitudeSettingTab extends PluginSettingTab {
 		} else if (key === 'dataFolder') {
 			const raw = typeof value === 'string' ? value : '';
 			this.plugin.settings.dataFolder = raw.trim() || 'Habitude';
-		} else if (key === 'geminiApiKey') {
-			this.plugin.settings.geminiApiKey = typeof value === 'string' ? value.trim() : '';
-		} else if (key === 'coachModel') {
-			const raw = typeof value === 'string' ? value.trim() : '';
-			this.plugin.settings.coachModel = raw || DEFAULT_SETTINGS.coachModel;
+		} else if (key === 'llmProvider') {
+			const id = typeof value === 'string' ? value : 'gemini';
+			this.plugin.settings.llmProvider = (
+				LLM_PROVIDER_IDS as string[]
+			).includes(id)
+				? (id as LlmProviderId)
+				: 'gemini';
+		} else if (key === 'llmApiKey') {
+			this.plugin.settings.llmApiKey = typeof value === 'string' ? value.trim() : '';
+		} else if (key === 'llmModel') {
+			this.plugin.settings.llmModel = typeof value === 'string' ? value.trim() : '';
+		} else if (key === 'llmBaseUrl') {
+			this.plugin.settings.llmBaseUrl = typeof value === 'string' ? value.trim() : '';
 		} else if (key === 'coachLanguage') {
 			this.plugin.settings.coachLanguage = value === 'ko' ? 'ko' : value === 'en' ? 'en' : 'auto';
 		}
@@ -117,7 +152,7 @@ export class HabitudeSettingTab extends PluginSettingTab {
 	}
 
 	/**
-	 * Shared wiring for the Gemini API-key input. Used by BOTH the declarative
+	 * Shared wiring for the LLM API-key input. Used by BOTH the declarative
 	 * `render` escape hatch (Obsidian 1.13+) and the display() fallback
 	 * (older versions), so the key is always a masked password input and the
 	 * two paths cannot drift apart.
@@ -125,16 +160,16 @@ export class HabitudeSettingTab extends PluginSettingTab {
 	 * The input never pre-fills the saved key into the DOM: when a key is
 	 * stored the placeholder shows a mask hint instead.
 	 */
-	private configureApiKeyInput(text: TextComponent): TextComponent {
+	private configureLlmKeyInput(text: TextComponent): TextComponent {
 		text.inputEl.type = 'password';
 		return text
 			.setPlaceholder(
-				this.plugin.settings.geminiApiKey
-					? t('settings.apiKey.savedPlaceholder')
-					: t('settings.apiKey.emptyPlaceholder'),
+				this.plugin.settings.llmApiKey
+					? t('settings.llmKey.savedPlaceholder')
+					: t('settings.llmKey.emptyPlaceholder'),
 			)
 			.onChange(async (value) => {
-				this.plugin.settings.geminiApiKey = value.trim();
+				this.plugin.settings.llmApiKey = value.trim();
 				await this.plugin.saveSettings();
 			});
 	}
@@ -143,6 +178,7 @@ export class HabitudeSettingTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
+		const def = getProvider(this.plugin.settings.llmProvider);
 
 		new Setting(containerEl)
 			.setName(t('settings.dataFolder.name'))
@@ -172,21 +208,50 @@ export class HabitudeSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName(t('settings.apiKey.name'))
-			.setDesc(t('settings.apiKey.desc'))
-			.addText((text) => {
-				this.configureApiKeyInput(text);
+			.setName(t('settings.provider.name'))
+			.setDesc(t('settings.provider.desc'))
+			.addDropdown((drop) => {
+				for (const id of LLM_PROVIDER_IDS) {
+					drop.addOption(id, t(`settings.provider.${id}`));
+				}
+				return drop.setValue(this.plugin.settings.llmProvider).onChange(async (value) => {
+					const id = (LLM_PROVIDER_IDS as string[]).includes(value) ? (value as LlmProviderId) : 'gemini';
+					this.plugin.settings.llmProvider = id;
+					await this.plugin.saveSettings();
+					// Re-render so the model placeholder / key hint follow the provider.
+					this.display();
+				});
 			});
 
 		new Setting(containerEl)
-			.setName(t('settings.coachModel.name'))
-			.setDesc(t('settings.coachModel.desc'))
+			.setName(t('settings.llmKey.name'))
+			.setDesc(def.needsKey ? t('settings.llmKey.desc') : t('settings.llmKey.noKeyDesc'))
+			.addText((text) => {
+				this.configureLlmKeyInput(text);
+			});
+
+		new Setting(containerEl)
+			.setName(t('settings.llmModel.name'))
+			.setDesc(t('settings.llmModel.desc'))
 			.addText((text) =>
 				text
-					.setPlaceholder(DEFAULT_SETTINGS.coachModel)
-					.setValue(this.plugin.settings.coachModel)
+					.setPlaceholder(def.modelPlaceholder)
+					.setValue(this.plugin.settings.llmModel)
 					.onChange(async (value) => {
-						this.plugin.settings.coachModel = value.trim() || DEFAULT_SETTINGS.coachModel;
+						this.plugin.settings.llmModel = value.trim();
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(t('settings.baseUrl.name'))
+			.setDesc(def.id === 'custom' ? t('settings.baseUrl.requiredDesc') : t('settings.baseUrl.desc'))
+			.addText((text) =>
+				text
+					.setPlaceholder(t('settings.baseUrl.placeholder', { url: def.defaultBaseUrl || '—' }))
+					.setValue(this.plugin.settings.llmBaseUrl)
+					.onChange(async (value) => {
+						this.plugin.settings.llmBaseUrl = value.trim();
 						await this.plugin.saveSettings();
 					}),
 			);

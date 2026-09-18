@@ -136,6 +136,15 @@ export default class HabitudePlugin extends Plugin {
 
 	async loadSettings(): Promise<void> {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, (await this.loadData()) as Partial<PluginSettings>);
+		// One-time migration: legacy geminiApiKey/coachModel → provider-neutral
+		// llm* settings. Only runs when the new key is empty and a legacy key
+		// exists, so existing users keep their coach working after the update.
+		if (!this.settings.llmApiKey && this.settings.geminiApiKey) {
+			this.settings.llmProvider = 'gemini';
+			this.settings.llmApiKey = this.settings.geminiApiKey;
+			this.settings.llmModel = this.settings.coachModel || 'gemini-2.5-flash';
+			await this.saveData(this.settings);
+		}
 	}
 
 	async saveSettings(): Promise<void> {

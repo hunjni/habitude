@@ -22,7 +22,7 @@ import {
 	renderContextBlock,
 } from '../../src/coach/context';
 import { buildGreeting, buildSystemPrompt } from '../../src/coach/prompt';
-import { chatCompletion, CoachError } from '../../src/coach/gemini';
+import { chatCompletion, CoachError } from '../../src/coach/providers';
 import { addDays, todayKey } from '../../src/utils/dates';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
@@ -197,7 +197,7 @@ function thrownHttpError(status: number, message: string): Error {
 async function expectThrownKind(name: string, err: Error, want: string): Promise<void> {
 	try {
 		await chatCompletion(
-			{ apiKey: 'k', model: 'm', systemPrompt: 's', history: [], message: 'x' },
+			{ provider: 'gemini', baseUrl: '', apiKey: 'k', model: 'm', systemPrompt: 's', history: [], message: 'x' },
 			(async () => {
 				throw err;
 			}) as never,
@@ -224,7 +224,7 @@ async function testErrorShapes(): Promise<void> {
 	for (const [name, text, want] of resolvedCases) {
 		try {
 			await chatCompletion(
-				{ apiKey: 'k', model: 'm', systemPrompt: 's', history: [], message: 'x' },
+				{ provider: 'gemini', baseUrl: '', apiKey: 'k', model: 'm', systemPrompt: 's', history: [], message: 'x' },
 				bodyText(text) as never,
 			);
 			check(`${name} → ${want}`, false, ' (no error thrown)');
@@ -260,7 +260,7 @@ async function testConversationMemory(): Promise<void> {
 		history.push({ role: 'user', text: `message ${i}` });
 		try {
 			const reply = await chatCompletion(
-				{ apiKey: 'k', model: 'm', systemPrompt: 'SYS', history, message: `follow-up ${i}` },
+				{ provider: 'gemini', baseUrl: '', apiKey: 'k', model: 'm', systemPrompt: 'SYS', history, message: `follow-up ${i}` },
 				transport as never,
 			);
 			if (reply !== 'ok') crashed = true;

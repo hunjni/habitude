@@ -1,4 +1,4 @@
-// Regression test: the Gemini API key must ALWAYS render as a masked
+// Regression test: the AI coach API key must ALWAYS render as a masked
 // password input — never clear text.
 //
 // Two UI paths exist and both must mask:
@@ -121,11 +121,11 @@ async function testDeclarativePath(): Promise<void> {
 	// Typing trims and persists. (The fake saveSettings increments synchronously,
 	// so no microtask flush is needed.)
 	input.__fireChange(`  ${FAKE_KEY}  `);
-	check('typed value is trimmed before storing', plugin.settings.geminiApiKey === FAKE_KEY);
+	check('typed value is trimmed before storing', plugin.settings.llmApiKey === FAKE_KEY);
 	check('change persists via saveSettings', plugin.saves === 1);
 
 	// With a key stored, the placeholder shows a mask hint (still no prefill).
-	const plugin2 = makePlugin({ geminiApiKey: FAKE_KEY });
+	const plugin2 = makePlugin({ llmApiKey: FAKE_KEY });
 	const def2 = findApiKeyDef(makeTab(plugin2).getSettingDefinitions());
 	const renderDef2 = def2 ? asRenderDef(def2) : undefined;
 	const setting2 = new Setting({});
@@ -160,7 +160,7 @@ async function testDisplayFallback(): Promise<void> {
 	check('saved key is never pre-filled into the DOM', input.setValueCalls.length === 0);
 
 	input.__fireChange(`  ${FAKE_KEY}  `);
-	check('typed value is trimmed before storing', plugin.settings.geminiApiKey === FAKE_KEY);
+	check('typed value is trimmed before storing', plugin.settings.llmApiKey === FAKE_KEY);
 	check('change persists via saveSettings', plugin.saves === 1);
 }
 
