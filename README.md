@@ -59,7 +59,3 @@ npm run build    # production: tsc + esbuild → main.js
 ```
 
 Manual test install: copy `main.js`, `manifest.json`, `styles.css` into `<Vault>/.obsidian/plugins/habitude-checklist/`, reload Obsidian, enable under **Settings → Community plugins**.
-
-## Funnel
-
-See [FUNNEL.md](./FUNNEL.md) for how this plugin fits the Habitude acquisition funnel (Stage 0 wedge → connect → digital twin → premium).
