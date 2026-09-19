@@ -32,7 +32,7 @@ Both files are human-readable and hand-editable. The plugin re-reads them on eve
 - **Checklist view** (ribbon icon, or command *Open checklist*): habits × 7-day grid, click a cell to toggle. Week navigation (‹ ›), per-habit streak (🔥) and weekly %.
 - **Add habits** inline; **archive** via the ⋯ menu next to the habit name.
 - **Progress graphs** (in the checklist view): per-habit 30-day history strip and trailing 8-week completion bars, rendered locally as SVG — no network involved.
-- **Share progress** (button in the checklist view, opt-in): posts aggregate statistics to `https://habi.sh/api/share` and copies a `https://habi.sh/s/<id>` link. Only runs when you click it.
+- **Share progress** (button in the checklist view, opt-in): posts aggregate statistics to `https://habitude.ai/api/share` and copies a `https://habitude.ai/s/<id>` link. Only runs when you click it.
 - **Weekly review** (command *Open weekly review* or the button in the view): per-habit completion bars, total checks.
 - **Command** *Toggle today for a habit*: quick toggle from the command palette.
 - **Status bar**: today's progress (`✓ 3/5 today`).
@@ -45,7 +45,7 @@ Both files are human-readable and hand-editable. The plugin re-reads them on eve
 
 - **Checklist: fully local.** Habit tracking never calls any API, opens no connections, and holds no credentials. Your habits live in your vault as plain Markdown.
 - **Progress graphs: fully local.** Rendered in the app from your check data as SVG. No network involved.
-- **Share progress: explicit opt-in.** Only aggregate statistics (habit titles, streaks, completion rates) are ever transmitted — never your note contents. The payload is `{version, pluginVersion, generatedAt, stats: {habits: [{title, streak, weekRate}]}}` posted to `https://habi.sh/api/share`; nothing is sent unless you click the button.
+- **Share progress: explicit opt-in.** Only aggregate statistics (habit titles, streaks, completion rates) are ever transmitted — never your note contents. The payload is `{version, pluginVersion, generatedAt, stats: {habits: [{title, streak, weekRate}]}}` posted to `https://habitude.ai/api/share`; nothing is sent unless you click the button.
 - **Clipboard: write-only, on your tap.** The only clipboard access is writing the share link to your clipboard right after you press *Share progress*; the plugin never reads your clipboard.
 - **AI coach: opt-in BYOK.** The coach only activates if you pick a provider and — for cloud providers — paste your own API key (free tiers exist for Gemini, OpenAI, Anthropic, and OpenRouter). The key is stored only on this device, and requests go **directly to the provider you selected** — never to Habitude servers. Each message carries your habit *statistics* (streaks, rates, patterns), never your raw note text. Local providers (Ollama, LM Studio) need no key at all.
 - The only other thing that ever leaves Obsidian is you: the *Get AI coaching* button opens `https://habitude.ai` in your browser.

@@ -145,14 +145,14 @@ function testNoLeak(): void {
 function testShareId(): void {
 	console.log('isValidShareId');
 	check('accepts token', isValidShareId('abcXYZ-123_'));
-	check('accepts habi.sh-style id', isValidShareId('k9x2mQ7'));
+	check('accepts token-style id', isValidShareId('k9x2mQ7'));
 	check('rejects empty', !isValidShareId(''));
 	check('rejects path traversal', !isValidShareId('../../etc'));
-	check('rejects url', !isValidShareId('https://habi.sh/s/abc'));
+	check('rejects url', !isValidShareId('https://habitude.ai/s/abc'));
 	check('rejects non-string', !isValidShareId(123));
 	check('rejects too-short', !isValidShareId('ab'));
-	check('sharePageUrl format', sharePageUrl('abc123') === 'https://habi.sh/s/abc123');
-	check('endpoint constant', SHARE_API_URL === 'https://habi.sh/api/share');
+	check('sharePageUrl format', sharePageUrl('abc123') === 'https://habitude.ai/s/abc123');
+	check('endpoint constant', SHARE_API_URL === 'https://habitude.ai/api/share');
 }
 
 async function testShareProgress(): Promise<void> {
@@ -171,8 +171,8 @@ async function testShareProgress(): Promise<void> {
 	};
 	const ok = await shareProgress(payload, { post: okPost });
 	check('success resolves ok', ok.ok === true);
-	if (ok.ok) check('url built from id', ok.url === 'https://habi.sh/s/abc123');
-	check('posts to habi.sh api', postedUrl === 'https://habi.sh/api/share');
+	if (ok.ok) check('url built from id', ok.url === 'https://habitude.ai/s/abc123');
+	check('posts to share api', postedUrl === 'https://habitude.ai/api/share');
 	const parsed = JSON.parse(postedBody) as SharePayload;
 	check('posted body is the payload', parsed.version === '1' && parsed.stats.habits.length === 1);
 
@@ -222,7 +222,7 @@ async function testShareFromStore(): Promise<void> {
 		copies.push(t);
 	});
 	// defaultPost hits the real network in the plugin; in tests the sandbox
-	// has no habi.sh backend, so this must resolve to the ready notice
+	// has no share backend, so this must resolve to the ready notice
 	// (localized for the test env's UI locale, which is English in node).
 	check('failure notice shown', notices.includes(t('share.serverNotReady')), ` (was ${JSON.stringify(notices)})`);
 	check('nothing copied on failure', copies.length === 0);

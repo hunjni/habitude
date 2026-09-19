@@ -7,7 +7,9 @@
 // and habit ids are NEVER included; the payload is built field-by-field
 // from a whitelist so nothing else can leak through.
 //
-// Endpoint: https://habi.sh/api/share (public; no secret is involved).
+// Endpoint: https://habitude.ai/api/share (public; no secret is involved).
+// Note: habi.sh is owned by Habitude's owner; when its Firebase custom
+// domain is connected, these two URLs can be switched back to habi.sh.
 
 import { Notice, requestUrl } from 'obsidian';
 import { t } from './i18n';
@@ -15,7 +17,7 @@ import type { Habit } from './types';
 import { recentKeys, streakFor, weekRateFor } from './stats';
 import { addDays, todayKey } from './utils/dates';
 
-export const SHARE_API_URL = 'https://habi.sh/api/share';
+export const SHARE_API_URL = 'https://habitude.ai/api/share';
 export const SHARE_PAYLOAD_VERSION = '1';
 /** Keep titles bounded: long titles are truncated, never dropped silently. */
 const MAX_TITLE_LEN = 120;
@@ -23,7 +25,7 @@ const MAX_TITLE_LEN = 120;
 const SHARE_TIMEOUT_MS = 15000;
 
 export function sharePageUrl(id: string): string {
-	return `https://habi.sh/s/${id}`;
+	return `https://habitude.ai/s/${id}`;
 }
 
 export interface ShareHabitStat {
