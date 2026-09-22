@@ -577,6 +577,12 @@ function classifyBodyError(data: ErrorBody, providerLabel: string): CoachError {
 		throw new CoachError('auth', code === 401 || code === 403 ? t('coach.error.authInvalid') : t('coach.error.authRejected'));
 	}
 	if (code === 429 || codeStr === 'rate_limit_error') {
+		// 429 is overloaded OR exhausted quota — providers like Zhipu say so
+		// in the message ("余额不足...请充值"), which is far more actionable
+		// than a generic rate-limit notice. Pass the original through.
+		if (msg && msg !== 'Unknown error' && !/rate limit/i.test(msg)) {
+			throw new CoachError('quota', t('coach.error.rateLimitDetail', { detail: msg }));
+		}
 		throw new CoachError('quota', t('coach.error.rateLimit'));
 	}
 	// Keep the provider label out of the generic model error: the detail

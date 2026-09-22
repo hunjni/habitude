@@ -230,6 +230,7 @@ const en: Dict = {
 
 	// User-visible coach errors
 	'coach.error.rateLimit': 'Rate limit hit (free tier). Wait a minute and try again.',
+	'coach.error.rateLimitDetail': 'Provider rejected the request (429): {detail}',
 	'coach.error.httpError': '{provider} returned an error (status {status}). Please try again.',
 	'coach.error.network': 'Could not reach the AI provider. Check your connection. ({detail})',
 	'coach.error.unreadable': 'Got an unreadable response from the model. Please try again.',
@@ -463,6 +464,7 @@ const ko: Dict = {
 
 	// User-visible coach errors
 	'coach.error.rateLimit': '요청 한도에 도달했습니다(무료 등급). 1분 후 다시 시도하세요.',
+	'coach.error.rateLimitDetail': '제공자가 요청을 거부했습니다(429): {detail}',
 	'coach.error.httpError': '{provider}에서 오류가 발생했습니다(상태 {status}). 다시 시도하세요.',
 	'coach.error.network': 'AI 제공자에 연결할 수 없습니다. 연결을 확인하세요. ({detail})',
 	'coach.error.unreadable': '모델 응답을 읽을 수 없습니다. 다시 시도하세요.',
@@ -693,6 +695,7 @@ const zh: Dict = {
 
 	// User-visible coach errors
 	'coach.error.rateLimit': '触发频率限制（免费额度）。请稍等一分钟再试。',
+	'coach.error.rateLimitDetail': '服务商拒绝了请求（429）：{detail}',
 	'coach.error.httpError': '{provider} 返回错误（状态码 {status}）。请重试。',
 	'coach.error.network': '无法连接 AI 服务商。请检查网络。({detail})',
 	'coach.error.unreadable': '模型响应无法解析。请重试。',
