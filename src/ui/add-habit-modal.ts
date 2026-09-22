@@ -14,6 +14,7 @@ export class AddHabitModal extends Modal {
 		app: App,
 		private initialTitle: string,
 		private onSubmit: (title: string, type: HabitType, wantAi: boolean) => void,
+		private aiAvailable = true,
 	) {
 		super(app);
 	}
@@ -26,7 +27,7 @@ export class AddHabitModal extends Modal {
 
 		let title = this.initialTitle;
 		let type: HabitType = 'good';
-		let wantAi = true;
+		let wantAi = this.aiAvailable;
 		const submit = () => {
 			const trimmed = title.trim();
 			if (!trimmed) return;
@@ -56,12 +57,16 @@ export class AddHabitModal extends Modal {
 				drop.onChange((v) => (type = v === 'bad' ? 'bad' : 'good'));
 			});
 
-		new Setting(contentEl)
-			.setName(t('addHabit.aiToggle'))
-			.addToggle((toggle) => {
-				toggle.setValue(true);
-				toggle.onChange((v) => (wantAi = v));
-			});
+		const aiSetting = new Setting(contentEl).setName(t('addHabit.aiToggle'));
+		// When no usable AI config exists, show WHY instead of a toggle that
+		// silently produces a transient "not configured" notice later.
+		if (!this.aiAvailable) {
+			aiSetting.setDesc(t('addHabit.aiUnavailable'));
+		}
+		aiSetting.addToggle((toggle) => {
+			toggle.setValue(wantAi).setDisabled(!this.aiAvailable);
+			toggle.onChange((v) => (wantAi = v));
+		});
 
 		new Setting(contentEl).addButton((btn) =>
 			btn.setButtonText(t('checklist.add')).setCta().onClick(() => submit()),

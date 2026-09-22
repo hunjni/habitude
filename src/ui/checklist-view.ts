@@ -109,8 +109,11 @@ export class ChecklistView extends ItemView {
 		const doAdd = () => {
 			// The type (good/bad) must be chosen at creation: it flips the
 			// check semantics. The modal pre-fills the title typed so far.
-			new AddHabitModal(this.app, input.value.trim(), (title, type, wantAi) => {
-				input.value = '';
+			new AddHabitModal(
+				this.app,
+				input.value.trim(),
+				(title, type, wantAi) => {
+					input.value = '';
 				void store
 					.addHabit(title, type)
 					.then((habit) => {
@@ -129,7 +132,12 @@ export class ChecklistView extends ItemView {
 					})
 					.then(() => this.render())
 					.catch(() => new Notice(t('checklist.saveCheckFailed')));
-			}).open();
+				},
+				// Disable + explain the AI toggle up front when no usable
+				// provider config exists (missing key / base URL), instead of
+				// failing later with a transient notice.
+				this.deps.getAiConfig() !== null,
+			).open();
 		};
 		addBtn.onclick = () => void doAdd();
 		input.onkeydown = (e) => {

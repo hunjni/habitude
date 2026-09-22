@@ -343,9 +343,9 @@ const zhipuProvider: ProviderDef = {
 	label: 'Zhipu GLM',
 	needsKey: true,
 	defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',
-	defaultModel: 'glm-4',
-	models: ['glm-4-flash', 'glm-4-air', 'glm-4-plus', 'glm-4'],
-	modelPlaceholder: 'glm-4',
+	defaultModel: 'glm-4.7-flash',
+	models: ['glm-4.7-flash', 'glm-4-flash', 'glm-4-air', 'glm-4-plus', 'glm-4'],
+	modelPlaceholder: 'glm-4.7-flash',
 	keyUrl: 'https://open.bigmodel.cn/usercenter/apikeys',
 	// Zhipu's path has no '/v1' segment: /api/paas/v4/chat/completions.
 	buildRequest: (args) => buildOpenAiStyleRequest(args, {}, '/chat/completions'),

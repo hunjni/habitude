@@ -158,6 +158,7 @@ const en: Dict = {
 	// AI generation & habit detail
 	'common.cancel': 'Cancel',
 	'addHabit.aiToggle': 'Generate knowledge cards & plan with AI',
+	'addHabit.aiUnavailable': 'AI is not configured yet — pick a provider and paste an API key in Settings → Habitude checklist.',
 	'ai.noApiKey':
 		'No AI provider configured. Add an API key in settings to enable AI generation.',
 	'ai.confirmTitle': 'Generate with AI',
@@ -384,6 +385,7 @@ const ko: Dict = {
 	// AI generation & habit detail
 	'common.cancel': 'Cancel',
 	'addHabit.aiToggle': 'AI로 지식 카드 & 실행 계획 생성',
+	'addHabit.aiUnavailable': 'AI가 아직 구성되지 않았습니다 — 설정 → Habitude Checklist에서 제공자를 선택하고 API 키를 입력하세요.',
 	'ai.noApiKey': 'AI 공급자가 설정되지 않았습니다. 설정에서 API 키를 추가하면 AI 생성을 사용할 수 있습니다.',
 	'ai.confirmTitle': 'AI로 생성',
 	'ai.confirmBody':
@@ -606,6 +608,7 @@ const zh: Dict = {
 	// AI generation & habit detail
 	'common.cancel': '取消',
 	'addHabit.aiToggle': '用 AI 生成知识卡片与执行方案',
+	'addHabit.aiUnavailable': 'AI 尚未配置——请先在 设置 → Habitude Checklist 中选择服务商并填写 API 密钥。',
 	'ai.noApiKey': '尚未配置 AI 服务商。请在设置中填入 API Key 以启用 AI 生成。',
 	'ai.confirmTitle': '用 AI 生成',
 	'ai.confirmBody':

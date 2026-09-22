@@ -311,7 +311,7 @@ async function testDomesticProviders(): Promise<void> {
 		const { req } = await run('zhipu');
 		check('zhipu url (no /v1 duplication)', req.url === 'https://open.bigmodel.cn/api/paas/v4/chat/completions', ` (${req.url})`);
 		const body = JSON.parse(req.body) as { model: string };
-		check('zhipu default model', body.model === 'glm-4');
+		check('zhipu default model', body.model === 'glm-4.7-flash');
 	}
 
 	// siliconflow.
