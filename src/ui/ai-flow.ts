@@ -8,7 +8,7 @@ import { Notice } from 'obsidian';
 import { t } from '../i18n';
 import { getProvider } from '../coach/providers';
 import { generateKnowledgeCards, generatePlan, type GenerationConfig } from '../ai-generator';
-import { writeGeneratedCards } from '../knowledge';
+import { writeGeneratedKnowledgeNote } from '../knowledge';
 import type { Habit } from '../types';
 import type { HabitStore } from '../store';
 import { ConfirmModal } from './confirm-modal';
@@ -57,7 +57,7 @@ async function runGeneration(
 	try {
 		const plan = await generatePlan(cfg, habit);
 		const cards = await generateKnowledgeCards(cfg, habit);
-		await writeGeneratedCards(app, dataFolder, habit, cards);
+		await writeGeneratedKnowledgeNote(app, dataFolder, habit, cards);
 		await store.updatePlan(habit.id, plan);
 		new Notice(t('ai.generated', { cards: cards.length }));
 		onDone();

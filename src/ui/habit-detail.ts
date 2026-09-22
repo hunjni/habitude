@@ -16,7 +16,6 @@ import {
 	MANUAL_LINKS_FIELD,
 } from '../knowledge';
 import { confirmAndGenerate, type AiConfigProvider } from './ai-flow';
-import { currentPhase, stageCategory } from '../stats';
 import { renderUrgeSection } from './urge-view';
 
 const PLAN_FIELDS: Array<[keyof Omit<HabitPlan, 'phases'>, string]> = [
@@ -156,22 +155,17 @@ export class HabitDetailModal extends Modal {
 		const cards = await listCardsForHabit(this.app, this.dataFolder, this.habit.id);
 		const links = parseManualLinks(this.habit.notes ?? '');
 
-		// Stage-linked ordering (target D / Q6): cards of the current phase's
-		// category float to the top; everything else keeps file order.
-		const stage = this.habit.plan ? currentPhase(this.habit.plan, this.habit.planGenerated) : null;
-		const preferred = stage ? stageCategory(this.habit.type, stage.day) : '';
-		const ordered = preferred ? [...cards].sort((a, b) => Number(b.category === preferred) - Number(a.category === preferred)) : cards;
-
 		if (cards.length === 0 && links.length === 0) {
 			section.createEl('p', { text: t('detail.knowledgeEmpty') });
 		}
-		for (const card of ordered) {
+		for (const card of cards) {
 			const item = section.createDiv({ cls: 'habitude-card-item' });
 			const btn = item.createEl('button', {
 				cls: 'habitude-card-link',
 				attr: { 'aria-label': t('detail.openCardAria', { title: card.title }) },
 			});
-			btn.setText(card.category ? `${card.title} · ${card.category}` : card.title);
+			const when = card.generated ? ` · ${card.generated}` : '';
+			btn.setText(`${card.title}${when}`);
 			btn.onclick = () => void this.app.workspace.getLeaf('tab').openFile(card.file);
 		}
 		for (const link of links) {

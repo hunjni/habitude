@@ -119,6 +119,7 @@ const en: Dict = {
 	'checklist.shareNote':
 		'Sharing runs only when you tap the button. Only aggregate stats — habit titles, streaks, completion rates — are sent; your note contents are never included.',
 	'checklist.getCoaching': '✨ Open AI coach',
+	'knowledge.noteMeta': 'AI-generated on {date} · {n} cards',
 	'checklist.footnote':
 		'Your data stays in your vault as plain Markdown. Nothing leaves your device unless you explicitly share it.',
 	'checklist.toggleAria': '{title} on {date}',
@@ -355,6 +356,7 @@ const ko: Dict = {
 	'checklist.shareNote':
 		'공유하기는 사용자가 직접 누를 때만 동작하며, 전송되는 데이터는 습관 제목·스트릭·완료율 같은 집계 통계뿐이고 노트 내용은 포함되지 않습니다.',
 	'checklist.getCoaching': '✨ AI 코치 열기',
+	'knowledge.noteMeta': 'AI 생성일 {date} · 카드 {n}장',
 	'checklist.footnote':
 		'데이터는 볼트 안에 일반 Markdown으로 보관됩니다. 직접 공유하지 않는 한 기기 밖으로 나가지 않습니다.',
 	'checklist.toggleAria': '{date}의 {title}',
@@ -588,6 +590,7 @@ const zh: Dict = {
 	'checklist.shareNote':
 		'仅在你点击按钮时才会分享。只发送习惯标题、连续天数、完成率等聚合统计；绝不包含笔记内容。',
 	'checklist.getCoaching': '✨ 打开 AI 教练',
+	'knowledge.noteMeta': 'AI 生成于 {date} · {n} 张卡片',
 	'checklist.footnote':
 		'数据以纯 Markdown 形式保存在你的 Vault 中。除非你主动分享，否则不会离开你的设备。',
 	'checklist.toggleAria': '{date} 的 {title}',

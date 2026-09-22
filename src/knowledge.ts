@@ -1,29 +1,39 @@
 // Knowledge cards: AI-generated Markdown notes under "<dataFolder>/Knowledge/".
 //
-// Cards are ordinary vault notes — openable, editable, searchable, linkable —
-// tied to a habit by a frontmatter `habitId` field (CONTEXT.md). AI-generated
-// files are named "<habitId>-<n>.md"; regenerating replaces exactly those
-// files (ADR on card regeneration) and never touches anything else in the
-// folder, including the user's own notes or manually linked ones.
+// One habit gets ONE note named after the habit title (sanitized), e.g.
+// "Knowledge/晨跑.md" — easy to recognize in the file explorer. All cards
+// live in that single note as "##" sections. The note is tied to the habit
+// by a frontmatter `habitId` field (stable across title renames) and is
+// written/rewritten only by regeneration; anything else in the folder,
+// including the user's own notes, is never touched.
+//
+// Legacy layout (one file per card, "<habitId>-<n>.md") is cleaned up
+// automatically on the next regeneration.
 
 import { TFile, normalizePath } from 'obsidian';
 import type { Habit } from './types';
 import type { KnowledgeCard } from './ai-generator';
+import { t } from './i18n';
+import { todayKey } from './utils/dates';
 
 export const KNOWLEDGE_FOLDER = 'Knowledge';
 
 /**
- * Frontmatter keys on a generated card file. Files are WRITTEN with the
- * canonical camelCase keys; lookups are case-insensitive because the parse
- * lowercases everything (hand-edited frontmatter may use any case).
+ * Frontmatter keys on a generated note. Files are WRITTEN with the canonical
+ * camelCase keys; lookups are case-insensitive because the parse lowercases
+ * everything (hand-edited frontmatter may use any case).
  */
 const FM_HABIT_ID = 'habitId';
-const FM_CATEGORY = 'category';
+const FM_HABIT = 'habit';
+const FM_GENERATED = 'generated';
 
 export interface KnowledgeCardFile {
 	file: TFile;
 	habitId: string;
-	category: string;
+	/** Frontmatter habit title snapshot (may be stale after a rename). */
+	habit: string;
+	/** Generation date (YYYY-MM-DD), '' when absent. */
+	generated: string;
 	/** First "# heading" of the note; falls back to the file basename. */
 	title: string;
 }
@@ -54,12 +64,6 @@ function firstHeading(text: string): string {
 	return '';
 }
 
-/** Build the on-disk note for one card: frontmatter + title heading + body. */
-export function renderCardMarkdown(habitId: string, card: KnowledgeCard): string {
-	const fm = [`---`, `${FM_HABIT_ID}: ${habitId}`, `${FM_CATEGORY}: ${card.category}`, `---`].join('\n');
-	return `${fm}\n\n# ${card.title}\n\n${card.content}\n`;
-}
-
 /** List every knowledge-card note in the folder (empty when it doesn't exist). */
 export async function listKnowledgeCards(app: import('obsidian').App, dataFolder: string): Promise<KnowledgeCardFile[]> {
 	const prefix = `${knowledgePath(dataFolder)}/`;
@@ -74,7 +78,8 @@ export async function listKnowledgeCards(app: import('obsidian').App, dataFolder
 		out.push({
 			file: f,
 			habitId,
-			category: fm[FM_CATEGORY.toLowerCase()] ?? '',
+			habit: fm[FM_HABIT.toLowerCase()] ?? '',
+			generated: fm[FM_GENERATED.toLowerCase()] ?? '',
 			title: firstHeading(text) || f.basename,
 		});
 	}
@@ -92,38 +97,91 @@ export async function listCardsForHabit(
 		.sort((a, b) => a.file.path.localeCompare(b.file.path));
 }
 
+// --- One note per habit ------------------------------------------------------
+
+/** Display emoji + Chinese label for a known card category. */
+const CATEGORY_META: Record<string, { emoji: string; label: string }> = {
+	trigger: { emoji: '🎯', label: '触发因素' },
+	replacement: { emoji: '🔄', label: '替代行为' },
+	coping: { emoji: '🧘', label: '应对技巧' },
+	motivation: { emoji: '💡', label: '为什么重要' },
+	strategy: { emoji: '🛠️', label: '执行策略' },
+	maintenance: { emoji: '🌱', label: '长期维持' },
+};
+
 /**
- * Write freshly generated cards for a habit. Replace semantics: existing
- * AI-generated files "<habitId>-<n>.md" are trashed first, then the new
- * cards are written from <habitId>-1.md upward. Any other file in the
- * folder (user notes, manually linked notes, other habits' cards) is
- * untouched.
+ * File-name-safe base from a habit title: strips characters Obsidian and
+ * Windows reject, collapses whitespace, caps length. Empty result falls back
+ * to the habit id at the call site.
  */
-export async function writeGeneratedCards(
+export function sanitizeFileName(title: string): string {
+	return title
+		.replace(/[\\/:*?"<>|#^[\]]/g, '')
+		.replace(/\s+/g, ' ')
+		.trim()
+		.replace(/[.\s]+$/, '')
+		.slice(0, 60)
+		.trim();
+}
+
+/** Build the whole single-note markdown for one habit's cards. */
+export function renderKnowledgeNote(
+	habit: Pick<Habit, 'id' | 'title'>,
+	cards: KnowledgeCard[],
+	generated: string,
+): string {
+	const fm = [
+		'---',
+		`${FM_HABIT_ID}: ${habit.id}`,
+		`${FM_HABIT}: ${habit.title.replace(/\n/g, ' ')}`,
+		`${FM_GENERATED}: ${generated}`,
+		'---',
+	].join('\n');
+	const head = `# 🧠 ${habit.title}\n\n> ${t('knowledge.noteMeta', { date: generated, n: String(cards.length) })}\n`;
+	const sections = cards.map((card, i) => {
+		const meta = CATEGORY_META[card.category] ?? { emoji: '📌', label: card.category };
+		return `## ${meta.emoji} ${i + 1}. ${meta.label}：${card.title}\n\n${card.content}`;
+	});
+	return `${fm}\n\n${head}\n\n${sections.join('\n\n---\n\n')}\n`;
+}
+
+/**
+ * Write all freshly generated cards of a habit into ONE note named after the
+ * habit title. Replace semantics: the previous note for this habit (same
+ * target name) and legacy "<habitId>-<n>.md" card files are trashed first;
+ * any other file in the folder — user notes, other habits' notes — is
+ * untouched. A name collision with an unrelated note resolves by suffixing
+ * " 2", " 3", … instead of overwriting.
+ */
+export async function writeGeneratedKnowledgeNote(
 	app: import('obsidian').App,
 	dataFolder: string,
-	habit: Pick<Habit, 'id'>,
+	habit: Pick<Habit, 'id' | 'title'>,
 	cards: KnowledgeCard[],
-): Promise<TFile[]> {
+): Promise<TFile> {
 	const folder = knowledgePath(dataFolder);
 	if (!app.vault.getAbstractFileByPath(folder)) {
 		await app.vault.createFolder(folder);
 	}
-	const generatedRe = new RegExp(`^${escapeRegExp(habit.id)}-\\d+\\.md$`);
+	const base = sanitizeFileName(habit.title) || habit.id;
+	const legacyRe = new RegExp(`^${escapeRegExp(habit.id)}-\\d+\\.md$`);
 	for (const c of await listKnowledgeCards(app, dataFolder)) {
-		if (c.habitId === habit.id && generatedRe.test(c.file.name)) {
+		if (c.habitId !== habit.id) continue;
+		// Only files whose NAME marks them as plugin-generated are replaced;
+		// a user note carrying a hand-written habitId is left alone.
+		if (legacyRe.test(c.file.name) || c.file.name === `${base}.md`) {
 			// FileManager.trashFile respects the user's deletion preference.
 			await app.fileManager.trashFile(c.file);
 		}
 	}
-	const written: TFile[] = [];
-	for (let i = 0; i < cards.length; i++) {
-		const card = cards[i];
-		if (!card) continue;
-		const path = normalizePath(`${folder}/${habit.id}-${i + 1}.md`);
-		written.push(await app.vault.create(path, renderCardMarkdown(habit.id, card)));
+	let name = `${base}.md`;
+	let n = 2;
+	while (app.vault.getAbstractFileByPath(normalizePath(`${folder}/${name}`))) {
+		name = `${base} ${n}.md`;
+		n++;
 	}
-	return written;
+	const path = normalizePath(`${folder}/${name}`);
+	return await app.vault.create(path, renderKnowledgeNote(habit, cards, todayKey()));
 }
 
 function escapeRegExp(s: string): string {
