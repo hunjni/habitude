@@ -71,6 +71,12 @@ export interface ProviderDef {
 	needsKey: boolean;
 	defaultBaseUrl: string;
 	defaultModel: string;
+	/**
+	 * Preset models rendered as a dropdown in settings so the user never has
+	 * to type a model id. Empty list -> the settings page falls back to a
+	 * free-text input (local/custom providers).
+	 */
+	models: string[];
 	modelPlaceholder: string;
 	/** Key issuance URL; '' for local providers and custom endpoints. */
 	keyUrl: string;
@@ -144,6 +150,7 @@ const geminiProvider: ProviderDef = {
 	needsKey: true,
 	defaultBaseUrl: 'https://generativelanguage.googleapis.com',
 	defaultModel: 'gemini-2.5-flash',
+	models: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.5-flash-lite'],
 	modelPlaceholder: 'gemini-2.5-flash',
 	keyUrl: 'https://aistudio.google.com/apikey',
 	buildRequest: (args) => {
@@ -174,6 +181,7 @@ const openaiProvider: ProviderDef = {
 	needsKey: true,
 	defaultBaseUrl: 'https://api.openai.com',
 	defaultModel: 'gpt-4o-mini',
+	models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'o4-mini'],
 	modelPlaceholder: 'gpt-4o-mini',
 	keyUrl: 'https://platform.openai.com/api-keys',
 	buildRequest: (args) => buildOpenAiStyleRequest(args),
@@ -220,6 +228,7 @@ const anthropicProvider: ProviderDef = {
 	needsKey: true,
 	defaultBaseUrl: 'https://api.anthropic.com',
 	defaultModel: 'claude-3-5-sonnet-latest',
+	models: ['claude-3-5-sonnet-latest', 'claude-3-5-haiku-latest', 'claude-3-opus-latest'],
 	modelPlaceholder: 'claude-3-5-sonnet-latest',
 	keyUrl: 'https://console.anthropic.com/settings/keys',
 	buildRequest: (args) => ({
@@ -250,6 +259,7 @@ const openrouterProvider: ProviderDef = {
 	needsKey: true,
 	defaultBaseUrl: 'https://openrouter.ai/api',
 	defaultModel: 'openai/gpt-4o-mini',
+	models: ['openai/gpt-4o-mini', 'anthropic/claude-3.5-sonnet', 'google/gemini-2.0-flash-001', 'deepseek/deepseek-chat'],
 	modelPlaceholder: 'openai/gpt-4o-mini',
 	keyUrl: 'https://openrouter.ai/keys',
 	buildRequest: (args) =>
@@ -266,6 +276,7 @@ const ollamaProvider: ProviderDef = {
 	needsKey: false,
 	defaultBaseUrl: 'http://localhost:11434/v1',
 	defaultModel: 'llama3.1',
+	models: ['llama3.1', 'llama3.2', 'qwen2.5', 'mistral'],
 	modelPlaceholder: 'llama3.1',
 	keyUrl: '',
 	buildRequest: (args) => buildOpenAiStyleRequest(args),
@@ -278,6 +289,7 @@ const lmstudioProvider: ProviderDef = {
 	needsKey: false,
 	defaultBaseUrl: 'http://localhost:1234/v1',
 	defaultModel: 'local-model',
+	models: [],
 	modelPlaceholder: 'local-model',
 	keyUrl: '',
 	buildRequest: (args) => buildOpenAiStyleRequest(args),
@@ -293,6 +305,7 @@ const deepseekProvider: ProviderDef = {
 	needsKey: true,
 	defaultBaseUrl: 'https://api.deepseek.com',
 	defaultModel: 'deepseek-chat',
+	models: ['deepseek-chat', 'deepseek-reasoner'],
 	modelPlaceholder: 'deepseek-chat',
 	keyUrl: 'https://platform.deepseek.com/api_keys',
 	buildRequest: (args) => buildOpenAiStyleRequest(args),
@@ -305,6 +318,7 @@ const qwenProvider: ProviderDef = {
 	needsKey: true,
 	defaultBaseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
 	defaultModel: 'qwen-plus',
+	models: ['qwen-plus', 'qwen-turbo', 'qwen-max', 'qwen-long'],
 	modelPlaceholder: 'qwen-plus',
 	keyUrl: 'https://bailian.console.aliyun.com/',
 	buildRequest: (args) => buildOpenAiStyleRequest(args),
@@ -317,6 +331,7 @@ const kimiProvider: ProviderDef = {
 	needsKey: true,
 	defaultBaseUrl: 'https://api.moonshot.cn/v1',
 	defaultModel: 'moonshot-v1-8k',
+	models: ['moonshot-v1-8k', 'moonshot-v1-32k', 'moonshot-v1-128k'],
 	modelPlaceholder: 'moonshot-v1-8k',
 	keyUrl: 'https://platform.moonshot.cn/console/api-keys',
 	buildRequest: (args) => buildOpenAiStyleRequest(args),
@@ -329,6 +344,7 @@ const zhipuProvider: ProviderDef = {
 	needsKey: true,
 	defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',
 	defaultModel: 'glm-4',
+	models: ['glm-4-flash', 'glm-4-air', 'glm-4-plus', 'glm-4'],
 	modelPlaceholder: 'glm-4',
 	keyUrl: 'https://open.bigmodel.cn/usercenter/apikeys',
 	// Zhipu's path has no '/v1' segment: /api/paas/v4/chat/completions.
@@ -342,6 +358,7 @@ const siliconflowProvider: ProviderDef = {
 	needsKey: true,
 	defaultBaseUrl: 'https://api.siliconflow.cn/v1',
 	defaultModel: 'deepseek-ai/DeepSeek-V3',
+	models: ['deepseek-ai/DeepSeek-V3', 'deepseek-ai/DeepSeek-R1', 'Qwen/Qwen2.5-72B-Instruct'],
 	modelPlaceholder: 'deepseek-ai/DeepSeek-V3',
 	keyUrl: 'https://cloud.siliconflow.cn/account/ak',
 	buildRequest: (args) => buildOpenAiStyleRequest(args),
@@ -354,6 +371,7 @@ const doubaoProvider: ProviderDef = {
 	needsKey: true,
 	defaultBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
 	defaultModel: 'doubao-seed-1-6-flash',
+	models: ['doubao-seed-1-6-flash', 'doubao-seed-1-6', 'doubao-1-5-pro-32k'],
 	modelPlaceholder: 'doubao-seed-1-6-flash',
 	keyUrl: 'https://console.volcengine.com/ark',
 	// Ark's path has no '/v1' segment: /api/v3/chat/completions.
@@ -367,6 +385,7 @@ const customProvider: ProviderDef = {
 	needsKey: false,
 	defaultBaseUrl: '',
 	defaultModel: '',
+	models: [],
 	modelPlaceholder: 'model-id',
 	keyUrl: '',
 	buildRequest: (args) => buildOpenAiStyleRequest(args),

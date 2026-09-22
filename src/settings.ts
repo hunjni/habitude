@@ -8,7 +8,12 @@ import { App, PluginSettingTab, TextComponent } from 'obsidian';
 import type { SettingDefinitionItem } from 'obsidian';
 import { t } from './i18n';
 import type HabitudePlugin from './main';
-import { getProvider, LLM_PROVIDER_IDS, type LlmProviderId } from './coach/providers';
+import {
+	getProvider,
+	LLM_PROVIDER_IDS,
+	type LlmProviderId,
+	type ProviderDef,
+} from './coach/providers';
 import { DEFAULT_SETTINGS, normalizeCheckmarkColor, type PluginSettings } from './types';
 
 export type { PluginSettings };
@@ -84,26 +89,28 @@ export class HabitudeSettingTab extends PluginSettingTab {
 					setting.addText((text) => this.configureLlmKeyInput(text));
 				},
 			},
-			{
-				name: t('settings.llmModel.name'),
-				desc: t('settings.llmModel.desc'),
-				control: {
-					type: 'text',
-					key: 'llmModel',
-					placeholder: def.modelPlaceholder,
-					defaultValue: DEFAULT_SETTINGS.llmModel,
-				},
-			},
-			{
-				name: t('settings.baseUrl.name'),
-				desc: def.id === 'custom' ? t('settings.baseUrl.requiredDesc') : t('settings.baseUrl.desc'),
-				control: {
-					type: 'text',
-					key: 'llmBaseUrl',
-					placeholder: t('settings.baseUrl.placeholder', { url: def.defaultBaseUrl || '—' }),
-					defaultValue: DEFAULT_SETTINGS.llmBaseUrl,
-				},
-			},
+			this.buildModelRow(def),
+			// Base URL is built in for every preset provider (empty -> provider
+			// default, see chatCompletion), so the row only appears when it can
+			// actually matter: the Custom provider, or an existing override the
+			// user must still be able to see and clear.
+			...(def.id === 'custom' || this.plugin.settings.llmBaseUrl.trim() !== ''
+				? [
+						{
+							name: t('settings.baseUrl.name'),
+							desc:
+								def.id === 'custom'
+									? t('settings.baseUrl.requiredDesc')
+									: t('settings.baseUrl.desc'),
+							control: {
+								type: 'text',
+								key: 'llmBaseUrl',
+								placeholder: t('settings.baseUrl.placeholder', { url: def.defaultBaseUrl || '—' }),
+								defaultValue: DEFAULT_SETTINGS.llmBaseUrl,
+							},
+						} as SettingDefinitionItem,
+					]
+				: []),
 			{
 				name: t('settings.coachLanguage.name'),
 				desc: t('settings.coachLanguage.desc'),
@@ -127,6 +134,46 @@ export class HabitudeSettingTab extends PluginSettingTab {
 		];
 	}
 
+	/**
+	 * Model row: a dropdown of the provider's built-in preset models (the
+	 * common case — the user just picks one), falling back to a free-text
+	 * input for local/custom providers without presets. A saved model id that
+	 * is no longer in the preset list is kept as an extra option so switching
+	 * UI layouts never silently changes the user's choice.
+	 */
+	private buildModelRow(def: ProviderDef): SettingDefinitionItem {
+		if (def.models.length === 0) {
+			return {
+				name: t('settings.llmModel.name'),
+				desc: t('settings.llmModel.desc'),
+				control: {
+					type: 'text',
+					key: 'llmModel',
+					placeholder: def.modelPlaceholder,
+					defaultValue: DEFAULT_SETTINGS.llmModel,
+				},
+			};
+		}
+		const saved = this.plugin.settings.llmModel.trim();
+		const options: Record<string, string> = {};
+		if (saved !== '' && !def.models.includes(saved)) {
+			options[saved] = saved;
+		}
+		for (const model of def.models) {
+			options[model] = model;
+		}
+		return {
+			name: t('settings.llmModel.name'),
+			desc: t('settings.llmModel.desc'),
+			control: {
+				type: 'dropdown',
+				key: 'llmModel',
+				options,
+				defaultValue: def.defaultModel,
+			},
+		};
+	}
+
 	getControlValue(key: string): unknown {
 		const value = this.plugin.settings[key as keyof PluginSettings];
 		// The dropdown control works with strings; keep settings typed as 0 | 1.
@@ -148,6 +195,22 @@ export class HabitudeSettingTab extends PluginSettingTab {
 			).includes(id)
 				? (id as LlmProviderId)
 				: 'gemini';
+			// Switching providers invalidates the previous provider's model id
+			// and endpoint override: snap the model to the new provider's
+			// default and drop the base-URL override (presets carry their own
+			// built-in endpoint; keeping a foreign one would silently misroute
+			// requests). Custom keeps its override.
+			const nextDef = getProvider(this.plugin.settings.llmProvider);
+			this.plugin.settings.llmModel = nextDef.defaultModel;
+			if (nextDef.id !== 'custom') {
+				this.plugin.settings.llmBaseUrl = '';
+			}
+			// The model row (dropdown vs text) and Base URL row visibility
+			// depend on the provider — re-render the whole tab. display() is
+			// still the official rebuild entry even in declarative mode: it
+			// consults our getSettingDefinitions override. (The deprecated tag
+			// is informational; there is no other way to force a re-render.)
+			this.display();
 		} else if (key === 'llmApiKey') {
 			this.plugin.settings.llmApiKey = typeof value === 'string' ? value.trim() : '';
 		} else if (key === 'llmModel') {
