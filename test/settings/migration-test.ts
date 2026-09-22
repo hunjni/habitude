@@ -116,12 +116,23 @@ async function testCleanDataNoWrite(): Promise<void> {
 	check('defaults intact', settings.llmApiKey === '' && settings.llmProvider === 'gemini');
 }
 
+async function testNullDataFreshInstall(): Promise<void> {
+	// Obsidian's loadData() returns null when no data.json exists yet
+	// (fresh install). This used to crash onload with
+	// "Cannot read properties of null (reading 'geminiApiKey')".
+	console.log('fresh install (loadData returns null):');
+	const { settings, saved } = await loadSettingsWith(null);
+	check('no crash and defaults intact', settings.llmApiKey === '' && settings.llmProvider === 'gemini');
+	check('no write triggered', saved.length === 0, ` (wrote ${saved.length})`);
+}
+
 async function main(): Promise<void> {
 	await testFullMigration();
 	await testKeyOnlyMigration();
 	await testExistingKeyWins();
 	await testModelOnlyPurge();
 	await testCleanDataNoWrite();
+	await testNullDataFreshInstall();
 	if (failures > 0) {
 		console.log(`\n${failures} check(s) FAILED`);
 		process.exit(1);

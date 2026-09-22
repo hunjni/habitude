@@ -169,7 +169,8 @@ export default class HabitudePlugin extends Plugin {
 		// Legacy keys (pre-0.4.2) may still sit in stored data; they are read
 		// here, migrated once, and purged below. They no longer exist in
 		// PluginSettings/DEFAULT_SETTINGS.
-		const raw = (await this.loadData()) as Partial<PluginSettings> & LegacySettings;
+		// loadData() returns null when no data.json exists yet (fresh install).
+		const raw = ((await this.loadData()) ?? {}) as Partial<PluginSettings> & LegacySettings;
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, raw);
 		// New setting: users without it (pre-checkmark-color versions) inherit
 		// the white default via Object.assign; invalid values are normalized
