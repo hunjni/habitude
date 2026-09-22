@@ -306,6 +306,22 @@ export class ChecklistView extends ItemView {
 					}),
 				);
 				menu.addItem((item) =>
+					item
+						.setTitle(
+							t('checklist.changeType', { target: habit.type === 'good' ? t('type.bad') : t('type.good') }),
+						)
+						.onClick(() => {
+							const next: 'good' | 'bad' = habit.type === 'good' ? 'bad' : 'good';
+							void store.setHabitType(habit.id, next).then(() => {
+								// Semantics flip with the type: a ✓ meant "done" for a
+								// good habit but "resisted" for a bad one — past marks
+								// are reinterpreted, so say so explicitly.
+								new Notice(t('checklist.changeTypeNotice', { title: habit.title }));
+								void this.render();
+							});
+						}),
+				);
+				menu.addItem((item) =>
 					item.setTitle(t('checklist.archiveHabit')).onClick(() => {
 						void store.archiveHabit(habit.id).then(() => {
 							new Notice(t('checklist.habitArchived', { title: habit.title }));
