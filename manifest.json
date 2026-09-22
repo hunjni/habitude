@@ -4,7 +4,7 @@
 	"description": "7-day habit checklist with streaks and weekly review. Markdown-native: Habitude/Habits.md + Habitude/Log/. AI coach (BYOK): Gemini, OpenAI, Claude, OpenRouter, Ollama/LM Studio. Opt-in sharing.",
 	"id": "habitude-checklist",
 	"isDesktopOnly": false,
-	"minAppVersion": "1.13.0",
+	"minAppVersion": "1.7.2",
 	"name": "Habitude Checklist",
-	"version": "0.4.4"
+	"version": "0.4.5"
 }
