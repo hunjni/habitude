@@ -6,7 +6,7 @@
 
 import { App, PluginSettingTab, TextComponent } from 'obsidian';
 import type { SettingDefinitionItem } from 'obsidian';
-import { t } from './i18n';
+import { clearUiLocale, setUiLocale, t } from './i18n';
 import type HabitudePlugin from './main';
 import {
 	getProvider,
@@ -127,6 +127,21 @@ export class HabitudeSettingTab extends PluginSettingTab {
 				},
 			},
 			{
+				name: t('settings.uiLanguage.name'),
+				desc: t('settings.uiLanguage.desc'),
+				control: {
+					type: 'dropdown',
+					key: 'uiLanguage',
+					options: {
+						auto: t('settings.uiLanguage.auto'),
+						en: t('settings.uiLanguage.english'),
+						ko: t('settings.uiLanguage.korean'),
+						zh: t('settings.uiLanguage.chinese'),
+					},
+					defaultValue: DEFAULT_SETTINGS.uiLanguage,
+				},
+			},
+			{
 				// Info-only row (SettingDefinitionEmpty): no control rendered.
 				name: t('settings.sharing.name'),
 				desc: t('settings.sharing.desc'),
@@ -217,6 +232,19 @@ export class HabitudeSettingTab extends PluginSettingTab {
 			this.plugin.settings.llmModel = typeof value === 'string' ? value.trim() : '';
 		} else if (key === 'llmBaseUrl') {
 			this.plugin.settings.llmBaseUrl = typeof value === 'string' ? value.trim() : '';
+		} else if (key === 'uiLanguage') {
+			const v = typeof value === 'string' ? value : 'auto';
+			this.plugin.settings.uiLanguage =
+				v === 'en' || v === 'ko' || v === 'zh' ? v : 'auto';
+			// Apply immediately: an explicit choice overrides auto-detection,
+			// 'auto' restores it. Re-render so the labels switch at once; open
+			// views and command names pick the new language on next reload.
+			if (this.plugin.settings.uiLanguage === 'auto') {
+				clearUiLocale();
+			} else {
+				setUiLocale(this.plugin.settings.uiLanguage);
+			}
+			this.display();
 		} else if (key === 'coachLanguage') {
 			this.plugin.settings.coachLanguage =
 				value === 'ko' ? 'ko' : value === 'en' ? 'en' : value === 'zh' ? 'zh' : 'auto';

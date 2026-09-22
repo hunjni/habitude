@@ -90,6 +90,8 @@ export interface PluginSettings {
 	llmBaseUrl: string;
 	/** reply language for the coach */
 	coachLanguage: CoachLanguage;
+	/** plugin UI language; 'auto' follows the Obsidian interface language */
+	uiLanguage: 'auto' | 'en' | 'ko' | 'zh';
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
@@ -101,6 +103,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	llmModel: '',
 	llmBaseUrl: '',
 	coachLanguage: 'auto',
+	uiLanguage: 'auto',
 };
 
 /**

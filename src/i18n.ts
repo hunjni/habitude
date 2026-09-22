@@ -74,6 +74,13 @@ const en: Dict = {
 	'settings.coachLanguage.name': 'Coach language',
 	'settings.coachLanguage.desc': 'Reply language for the AI coach.',
 	'settings.coachLanguage.auto': 'Auto (match me)',
+	'settings.uiLanguage.name': 'Plugin language',
+	'settings.uiLanguage.desc':
+		'UI language for this plugin. "Auto" follows the Obsidian interface language.',
+	'settings.uiLanguage.auto': 'Auto (follow Obsidian)',
+	'settings.uiLanguage.english': 'English',
+	'settings.uiLanguage.korean': '한국어',
+	'settings.uiLanguage.chinese': '简体中文',
 	'settings.coachLanguage.english': 'English',
 	'settings.coachLanguage.korean': '한국어',
 	'settings.coachLanguage.chinese': '中文',
@@ -294,6 +301,12 @@ const ko: Dict = {
 	'settings.coachLanguage.name': '코치 언어',
 	'settings.coachLanguage.desc': 'AI 코치의 답변 언어.',
 	'settings.coachLanguage.auto': '자동 (나와 맞춤)',
+	'settings.uiLanguage.name': '플러그인 언어',
+	'settings.uiLanguage.desc': '이 플러그인의 UI 언어. 자동은 Obsidian 인터페이스 언어를 따릅니다.',
+	'settings.uiLanguage.auto': '자동 (Obsidian 따르기)',
+	'settings.uiLanguage.english': 'English',
+	'settings.uiLanguage.korean': '한국어',
+	'settings.uiLanguage.chinese': '简体中文',
 	'settings.coachLanguage.english': 'English',
 	'settings.coachLanguage.korean': '한국어',
 	'settings.coachLanguage.chinese': '中文',
@@ -511,6 +524,12 @@ const zh: Dict = {
 	'settings.coachLanguage.name': '教练语言',
 	'settings.coachLanguage.desc': 'AI 教练的回复语言。',
 	'settings.coachLanguage.auto': '自动（跟随我）',
+	'settings.uiLanguage.name': '插件界面语言',
+	'settings.uiLanguage.desc': '本插件的界面语言。「自动」跟随 Obsidian 界面语言。命令与提示需要重载插件后更新。',
+	'settings.uiLanguage.auto': '自动（跟随 Obsidian）',
+	'settings.uiLanguage.english': 'English',
+	'settings.uiLanguage.korean': '한국어',
+	'settings.uiLanguage.chinese': '简体中文',
 	'settings.coachLanguage.english': 'English',
 	'settings.coachLanguage.korean': '한국어',
 	'settings.coachLanguage.chinese': '中文',
@@ -680,25 +699,50 @@ export function clearUiLocale(): void {
 	override = null;
 }
 
+/** Map a raw language tag ('zh-CN', 'en-US', 'ko-KR'…) to a supported locale, or null. */
+function pickLocale(lang: string | undefined | null): UiLocale | null {
+	const l = (lang ?? '').toLowerCase();
+	if (l.startsWith('zh')) return 'zh';
+	if (l.startsWith('ko')) return 'ko';
+	if (l.startsWith('en')) return 'en';
+	return null;
+}
+
 /**
- * Detect the UI locale from Obsidian's own language setting via the
- * getLanguage() API. Never throws: the API may be absent (node tests)
- * or access-restricted. Uses window for popout window compatibility
- * per the community review guidelines.
+ * Detect the UI locale from Obsidian's own language setting. Three probes,
+ * most authoritative first:
+ *   1. localStorage['language'] — where Obsidian persists the chosen UI
+ *      language (the single most reliable source).
+ *   2. window.getLanguage() — exposed by some Obsidian builds.
+ *   3. window.moment.locale() — Obsidian sets moment's locale to the app
+ *      language.
+ * Never throws: any probe may be absent (node tests) or access-restricted.
+ * Uses window for popout window compatibility per the community guidelines.
  */
 export function getUiLocale(): UiLocale {
 	if (override) return override;
 	try {
-		// getLanguage() is exposed on window by the Obsidian runtime.
+		if (typeof localStorage !== 'undefined' && localStorage.getItem) {
+			const picked = pickLocale(localStorage.getItem('language'));
+			if (picked) return picked;
+		}
+	} catch {
+		// localStorage unavailable — fall through.
+	}
+	try {
 		const w =
 			typeof window === 'undefined'
 				? undefined
-				: (window as unknown as { getLanguage?: unknown });
+				: (window as unknown as { getLanguage?: unknown; moment?: { locale?: () => string } });
 		const getLang = w?.getLanguage;
 		if (typeof getLang === 'function') {
-			const lang = (getLang as () => string)();
-			if (lang && lang.toLowerCase().startsWith('zh')) return 'zh';
-			if (lang && lang.toLowerCase().startsWith('ko')) return 'ko';
+			const picked = pickLocale((getLang as () => string)());
+			if (picked) return picked;
+		}
+		const momentLocale = w?.moment?.locale;
+		if (typeof momentLocale === 'function') {
+			const picked = pickLocale(momentLocale());
+			if (picked) return picked;
 		}
 	} catch {
 		// Absent or unreadable — fall through to English.

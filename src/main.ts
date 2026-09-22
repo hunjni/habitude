@@ -2,7 +2,7 @@
 // store.ts, stats.ts and settings.ts.
 
 import { Notice, Plugin } from 'obsidian';
-import { t } from './i18n';
+import { clearUiLocale, setUiLocale, t } from './i18n';
 import { DEFAULT_SETTINGS, HabitudeSettingTab, type PluginSettings } from './settings';
 import { normalizeCheckmarkColor } from './types';
 import { DEFAULT_COACH_MODEL, getProvider } from './coach/providers';
@@ -172,6 +172,18 @@ export default class HabitudePlugin extends Plugin {
 		// loadData() returns null when no data.json exists yet (fresh install).
 		const raw = ((await this.loadData()) ?? {}) as Partial<PluginSettings> & LegacySettings;
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, raw);
+		// Plugin UI language: 'auto' follows Obsidian's own language (see
+		// i18n.getUiLocale); an explicit choice overrides detection. Must be
+		// applied here, BEFORE registerCommands — command names are captured
+		// at registration time.
+		if (this.settings.uiLanguage !== 'auto' && this.settings.uiLanguage !== 'en' && this.settings.uiLanguage !== 'ko' && this.settings.uiLanguage !== 'zh') {
+			this.settings.uiLanguage = 'auto';
+		}
+		if (this.settings.uiLanguage === 'auto') {
+			clearUiLocale();
+		} else {
+			setUiLocale(this.settings.uiLanguage);
+		}
 		// New setting: users without it (pre-checkmark-color versions) inherit
 		// the white default via Object.assign; invalid values are normalized
 		// so the check mark can never render with a broken color.
