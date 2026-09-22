@@ -9,6 +9,7 @@ import { t } from '../i18n';
 import { getProvider } from '../coach/providers';
 import { generateKnowledgeCards, generatePlan, type GenerationConfig } from '../ai-generator';
 import { writeGeneratedKnowledgeNote } from '../knowledge';
+import { writePlanNote } from '../plan-note';
 import type { Habit } from '../types';
 import type { HabitStore } from '../store';
 import { ConfirmModal } from './confirm-modal';
@@ -59,6 +60,9 @@ async function runGeneration(
 		const cards = await generateKnowledgeCards(cfg, habit);
 		await writeGeneratedKnowledgeNote(app, dataFolder, habit, cards);
 		await store.updatePlan(habit.id, plan);
+		// Readable copy of the plan under Plans/ — Habits.md keeps the
+		// structured source; the note is regenerated on every write.
+		await writePlanNote(app, dataFolder, habit, plan);
 		new Notice(t('ai.generated', { cards: cards.length }));
 		onDone();
 	} catch (e) {

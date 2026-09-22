@@ -43,7 +43,7 @@ function knowledgePath(dataFolder: string): string {
 }
 
 /** Minimal frontmatter reader: "---" block with "key: value" lines. */
-function parseFrontmatter(text: string): Record<string, string> {
+export function parseFrontmatter(text: string): Record<string, string> {
 	if (!text.startsWith('---')) return {};
 	const end = text.indexOf('\n---', 3);
 	if (end < 0) return {};

@@ -5,10 +5,11 @@
 // fields, linking a note, or pressing the regenerate button (which shows the
 // standard AI confirm dialog from ai-flow before any request is made).
 
-import { App, Modal, Setting } from 'obsidian';
+import { App, Modal, Notice, Setting } from 'obsidian';
 import { t } from '../i18n';
 import type { Habit, HabitPlan } from '../types';
 import type { HabitStore } from '../store';
+import { writePlanNote, findPlanNote } from '../plan-note';
 import {
 	listCardsForHabit,
 	parseManualLinks,
@@ -91,13 +92,25 @@ export class HabitDetailModal extends Modal {
 				list.createEl('li', { text: `${phase.name}（${phase.days}）：${phase.focus}` });
 			}
 		}
-		new Setting(section).addButton((btn) =>
+	new Setting(section)
+		.addButton((btn) => btn.setButtonText(t('detail.planOpenNote')).onClick(() => void this.openPlanNote()))
+		.addButton((btn) =>
 			btn.setButtonText(t('detail.planEdit')).onClick(() => {
 				this.editingPlan = true;
 				void this.onOpen();
 			}),
 		);
+}
+
+/** Open the generated Plans/<title>执行方案.md note (notice when absent). */
+private async openPlanNote(): Promise<void> {
+	const file = await findPlanNote(this.app, this.dataFolder, this.habit.id);
+	if (!file) {
+		new Notice(t('detail.planNoteMissing'));
+		return;
 	}
+	await this.app.workspace.getLeaf('tab').openFile(file);
+}
 
 	/** Editable form: one input per plan field + a phases textarea. */
 	private renderPlanEditor(section: HTMLElement, plan: HabitPlan): void {
@@ -137,9 +150,12 @@ export class HabitDetailModal extends Modal {
 								days: parts[1] ?? '',
 								focus: parts.slice(2).join(' | '),
 							}));
-						void this.store.updatePlan(this.habit.id, next).then(() => {
+						void this.store.updatePlan(this.habit.id, next).then(async () => {
 							this.editingPlan = false;
 							this.habit = { ...this.habit, plan: next };
+							// Keep the Plans/ readable copy in sync with the
+							// structured source (same as AI regeneration does).
+							await writePlanNote(this.app, this.dataFolder, this.habit, next);
 							this.onChanged();
 							void this.onOpen();
 						});
