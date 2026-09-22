@@ -94,6 +94,16 @@
 	white-space: nowrap;
 }
 
+/* Clickable habit title: opens the details modal. */
+.habitude-habit-title-clickable {
+	cursor: pointer;
+}
+
+.habitude-habit-title-clickable:hover {
+	color: var(--text-accent);
+	text-decoration: underline;
+}
+
 .habitude-habit-meta {
 	font-size: 0.8em;
 	color: var(--text-muted);

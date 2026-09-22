@@ -265,7 +265,23 @@ export class ChecklistView extends ItemView {
 			});
 			metaEls.set(habit.id, metaEl);
 			const titleRow = nameCell.createDiv({ cls: 'habitude-title-row' });
-			titleRow.createDiv({ text: habit.title, cls: 'habitude-habit-title' });
+			const openDetails = () => {
+				new HabitDetailModal(
+					this.app,
+					store,
+					this.deps.getDataFolder(),
+					habit,
+					this.deps.getAiConfig,
+					() => void this.render(),
+				).open();
+			};
+			// The habit title itself opens the details modal — the ⋯ menu stays
+			// as the discoverable alternative (details + archive).
+			titleRow.createDiv({
+				text: habit.title,
+				cls: 'habitude-habit-title habitude-habit-title-clickable',
+				attr: { 'aria-label': t('checklist.habitDetails') },
+			}).onclick = openDetails;
 			const stage = habit.plan ? currentPhase(habit.plan, habit.planGenerated) : null;
 			if (stage) {
 				titleRow.createSpan({
@@ -283,14 +299,7 @@ export class ChecklistView extends ItemView {
 				const menu = new Menu();
 				menu.addItem((item) =>
 					item.setTitle(t('checklist.habitDetails')).onClick(() => {
-						new HabitDetailModal(
-							this.app,
-							store,
-							this.deps.getDataFolder(),
-							habit,
-							this.deps.getAiConfig,
-							() => void this.render(),
-						).open();
+						openDetails();
 					}),
 				);
 				menu.addItem((item) =>
