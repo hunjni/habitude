@@ -92,6 +92,8 @@ export interface PluginSettings {
 	coachLanguage: CoachLanguage;
 	/** plugin UI language; 'auto' follows the Obsidian interface language */
 	uiLanguage: 'auto' | 'en' | 'ko' | 'zh';
+	/** model ids fetched from each provider's /models endpoint, keyed by provider id (the settings "fetch models" button persists here) */
+	llmModelCache?: Record<string, string[]>;
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {

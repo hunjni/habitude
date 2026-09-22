@@ -4,7 +4,7 @@
 // device's plugin data and is sent only to the selected provider — never
 // to Habitude servers.
 
-import { App, PluginSettingTab, TextComponent } from 'obsidian';
+import { App, Notice, PluginSettingTab, requestUrl, TextComponent } from 'obsidian';
 import type { SettingDefinitionItem } from 'obsidian';
 import { clearUiLocale, setUiLocale, t } from './i18n';
 import type HabitudePlugin from './main';
@@ -150,49 +150,113 @@ export class HabitudeSettingTab extends PluginSettingTab {
 	}
 
 	/**
-	 * Model row: a dropdown of the provider's built-in preset models (the
-	 * common case — the user just picks one), falling back to a free-text
-	 * input for local/custom providers without presets. A saved model id that
-	 * is no longer in the preset list is kept as an extra option so switching
-	 * UI layouts never silently changes the user's choice.
+	 * Model row: a dropdown of the provider's built-in preset models plus any
+	 * ids fetched live from the provider's /models endpoint (the refresh
+	 * button on the row). A saved model id that is not in the list is kept as
+	 * an extra option so nothing silently changes the user's choice. Custom /
+	 * local providers without any list yet fall back to a free-text input.
 	 */
 	private buildModelRow(def: ProviderDef): SettingDefinitionItem {
-		if (def.models.length === 0) {
-			return {
-				name: t('settings.llmModel.name'),
-				desc: t('settings.llmModel.desc'),
-				control: {
-					type: 'text',
-					key: 'llmModel',
-					placeholder: def.modelPlaceholder,
-					defaultValue: DEFAULT_SETTINGS.llmModel,
-				},
-			};
-		}
-		const saved = this.plugin.settings.llmModel.trim();
-		const options: Record<string, string> = {};
-		if (saved !== '' && !def.models.includes(saved)) {
-			options[saved] = saved;
-		}
-		for (const model of def.models) {
-			options[model] = model;
-		}
+		const options = this.modelOptionsFor(def);
 		return {
 			name: t('settings.llmModel.name'),
 			desc: t('settings.llmModel.desc'),
-			control: {
-				type: 'dropdown',
-				key: 'llmModel',
-				options,
-				defaultValue: def.defaultModel,
+			render: (setting) => {
+				if (options.length > 0) {
+					setting.addDropdown((drop) => {
+						for (const model of options) {
+							drop.addOption(model, model);
+						}
+						const saved = this.plugin.settings.llmModel.trim() || def.defaultModel;
+						const first = options[0] ?? '';
+						drop.setValue(options.includes(saved) ? saved : first);
+						drop.onChange((v) => {
+							this.plugin.settings.llmModel = v.trim();
+							void this.plugin.saveSettings();
+						});
+					});
+				} else {
+					setting.addText((text) =>
+						text
+							.setPlaceholder(def.modelPlaceholder)
+							.setValue(this.plugin.settings.llmModel)
+							.onChange((v) => {
+								this.plugin.settings.llmModel = v.trim();
+								void this.plugin.saveSettings();
+							}),
+					);
+				}
+				setting.addExtraButton((btn) =>
+					btn
+						.setIcon('refresh-cw')
+						.setTooltip(t('settings.fetchModels'))
+						.onClick(() => this.fetchModelList(def)),
+				);
 			},
 		};
+	}
+
+	/** Presets ∪ persisted /models fetches ∪ the currently saved id, deduped. */
+	private modelOptionsFor(def: ProviderDef): string[] {
+		const seen = new Set<string>();
+		const out: string[] = [];
+		const push = (m: string) => {
+			if (m && !seen.has(m)) {
+				seen.add(m);
+				out.push(m);
+			}
+		};
+		push(this.plugin.settings.llmModel.trim());
+		if (def.defaultModel) push(def.defaultModel);
+		for (const m of def.models) push(m);
+		for (const m of this.plugin.settings.llmModelCache?.[def.id] ?? []) push(m);
+		return out;
+	}
+
+	/** Query the provider's model-list endpoint and persist the result. */
+	private async fetchModelList(def: ProviderDef): Promise<void> {
+		const s = this.plugin.settings;
+		const baseUrl = s.llmBaseUrl.trim() || def.defaultBaseUrl;
+		if (!def.listModels || !baseUrl) {
+			new Notice(t('settings.fetchModels.fail', { detail: t('settings.fetchModels.needUrl') }));
+			return;
+		}
+		if (def.needsKey && !s.llmApiKey.trim()) {
+			new Notice(t('settings.fetchModels.needKey'));
+			return;
+		}
+		const progress = new Notice(t('settings.fetchModels.loading'), 0);
+		try {
+			const spec = def.listModels({ baseUrl, apiKey: s.llmApiKey.trim() });
+			const res = await requestUrl({ url: spec.url, method: 'GET', headers: spec.headers });
+			const models = spec.parse(res.text);
+			if (models.length === 0) {
+				throw new Error(t('settings.fetchModels.empty'));
+			}
+			s.llmModelCache = { ...(s.llmModelCache ?? {}), [def.id]: models };
+			// Snap the selection to something the provider actually serves.
+			if (!models.includes(s.llmModel.trim())) {
+				const fallback = models.find((m) => m === def.defaultModel) ?? models[0] ?? '';
+				if (fallback) {
+					s.llmModel = fallback;
+				}
+			}
+			await this.plugin.saveSettings();
+			new Notice(t('settings.fetchModels.done', { count: models.length }));
+		} catch (e) {
+			const detail = e instanceof Error ? e.message : String(e);
+			new Notice(t('settings.fetchModels.fail', { detail }));
+		} finally {
+			progress.hide();
+		}
+		// Re-render: the row may switch from free-text to a fresh dropdown.
+		this.display();
 	}
 
 	getControlValue(key: string): unknown {
 		const value = this.plugin.settings[key as keyof PluginSettings];
 		// The dropdown control works with strings; keep settings typed as 0 | 1.
-		return key === 'weekStart' ? String(value) : value;
+		return key === 'weekStart' ? (value === 0 ? '0' : '1') : value;
 	}
 
 	async setControlValue(key: string, value: unknown): Promise<void> {

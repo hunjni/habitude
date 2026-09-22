@@ -83,6 +83,25 @@ export interface ProviderDef {
 	buildRequest: (args: BuildRequestArgs) => BuiltRequest;
 	/** Extract the assistant text from a raw response body (JSON text). */
 	parseResponse: (raw: string) => string;
+	/**
+	 * Model-list request (the settings "fetch models" button), bz-style:
+	 * OpenAI-compatible GET {base}/models, provider-specific overrides for
+	 * Gemini/Anthropic/Ollama. Absent = the provider has no known listing
+	 * endpoint (none today — all 13 define one).
+	 */
+	listModels?: (args: ModelListArgs) => ModelsRequestSpec;
+}
+
+export interface ModelListArgs {
+	baseUrl: string;
+	apiKey: string;
+}
+
+export interface ModelsRequestSpec {
+	url: string;
+	headers: Record<string, string>;
+	/** Extract model ids from a raw response body (JSON text). */
+	parse: (raw: string) => string[];
 }
 
 /**
@@ -134,6 +153,83 @@ function parseOpenAiStyleResponse(raw: string): string {
 		choices?: Array<{ message?: { content?: string } }>;
 	};
 	return data.choices?.[0]?.message?.content ?? '';
+}
+
+// --- Model-list endpoints (settings "fetch models" button) ---
+
+/** Tolerant OpenAI-compatible /models parser: data[].id, fallback data.models[].name. */
+function parseOpenAiModelList(raw: string): string[] {
+	const data = JSON.parse(raw) as {
+		data?: Array<{ id?: unknown }>;
+		models?: Array<{ name?: unknown }>;
+	};
+	const fromData = (data.data ?? [])
+		.map((m) => (typeof m?.id === 'string' ? m.id : ''))
+		.filter(Boolean);
+	if (fromData.length > 0) return fromData;
+	return (data.models ?? [])
+		.map((m) => (typeof m?.name === 'string' ? m.name : ''))
+		.filter(Boolean);
+}
+
+/** OpenAI-compatible GET {base}{apiPath} with optional Bearer auth. */
+function openAiModelList(apiPath = '/v1/models') {
+	return (args: ModelListArgs): ModelsRequestSpec => ({
+		url: joinApiPath(args.baseUrl, apiPath),
+		headers: args.apiKey ? { Authorization: `Bearer ${args.apiKey}` } : {},
+		parse: parseOpenAiModelList,
+	});
+}
+
+/** Gemini: GET {base}/v1beta/models, keep models that support generateContent. */
+function geminiModelList(args: ModelListArgs): ModelsRequestSpec {
+	const host = (args.baseUrl || '').replace(/\/+$/, '');
+	return {
+		url: `${host}/v1beta/models?pageSize=200`,
+		headers: args.apiKey ? { 'x-goog-api-key': args.apiKey } : {},
+		parse: (raw) => {
+			const data = JSON.parse(raw) as {
+				models?: Array<{ name?: string; supportedGenerationMethods?: string[] }>;
+			};
+			return (data.models ?? [])
+				.filter(
+					(m) =>
+						!m.supportedGenerationMethods ||
+						m.supportedGenerationMethods.includes('generateContent'),
+				)
+				.map((m) => (m.name ?? '').replace(/^models\//, ''))
+				.filter(Boolean);
+		},
+	};
+}
+
+/** Anthropic: GET /v1/models with the version header; data[].id. */
+function anthropicModelList(args: ModelListArgs): ModelsRequestSpec {
+	return {
+		url: `${joinApiPath(args.baseUrl, '/v1/models')}?limit=100`,
+		headers: { 'x-api-key': args.apiKey, 'anthropic-version': '2023-06-01' },
+		parse: (raw) => {
+			const data = JSON.parse(raw) as { data?: Array<{ id?: unknown }> };
+			return (data.data ?? [])
+				.map((m) => (typeof m?.id === 'string' ? m.id : ''))
+				.filter(Boolean);
+		},
+	};
+}
+
+/** Ollama: the listing lives on the root /api/tags (base URL ends in /v1). */
+function ollamaModelList(args: ModelListArgs): ModelsRequestSpec {
+	const root = args.baseUrl.replace(/\/v1\/?$/, '').replace(/\/+$/, '');
+	return {
+		url: `${root}/api/tags`,
+		headers: {},
+		parse: (raw) => {
+			const data = JSON.parse(raw) as { models?: Array<{ name?: unknown }> };
+			return (data.models ?? [])
+				.map((m) => (typeof m?.name === 'string' ? m.name : ''))
+				.filter(Boolean);
+		},
+	};
 }
 
 interface GenerateContentResponse {
@@ -407,6 +503,18 @@ const PROVIDERS: Record<LlmProviderId, ProviderDef> = {
 	doubao: doubaoProvider,
 	custom: customProvider,
 };
+
+// Model-list endpoints for the settings "fetch models" button. Every preset
+// is OpenAI-compatible here; Gemini/Anthropic/Ollama get their own shape and
+// Zhipu/Doubao mount /models on their non-/v1 base paths.
+PROVIDERS.gemini.listModels = geminiModelList;
+PROVIDERS.anthropic.listModels = anthropicModelList;
+PROVIDERS.ollama.listModels = ollamaModelList;
+PROVIDERS.zhipu.listModels = openAiModelList('/models');
+PROVIDERS.doubao.listModels = openAiModelList('/models');
+for (const id of ['openai', 'openrouter', 'lmstudio', 'deepseek', 'qwen', 'kimi', 'siliconflow', 'custom'] as LlmProviderId[]) {
+	PROVIDERS[id].listModels = openAiModelList();
+}
 
 export const LLM_PROVIDER_IDS: LlmProviderId[] = [
 	'gemini',
