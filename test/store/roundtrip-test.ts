@@ -166,6 +166,20 @@ async function main(): Promise<void> {
 		await store.setHabitType('read', 'good');
 		check('type flipped back', (await store.loadHabits()).find((h) => h.id === 'read')?.type === 'good');
 
+		// --- deleteHabit ---------------------------------------------------------
+		console.log('deleteHabit');
+		await store.addHabit('Temp habit', 'bad');
+		const withTemp = await store.loadHabits();
+		const tempId = withTemp[withTemp.length - 1]?.id ?? '';
+		check('temp habit added', withTemp.some((h) => h.title === 'Temp habit'));
+		await store.deleteHabit(tempId);
+		const afterDelete = await store.loadHabits();
+		check('temp habit gone', afterDelete.every((h) => h.id !== tempId));
+		check('other habits survive', afterDelete.some((h) => h.title === 'Read'));
+		const afterDeleteText = fs.readFileSync(habitsPath, 'utf8');
+		check('registry has no temp section', !afterDeleteText.includes('Temp habit'));
+		check('other sections intact', afterDeleteText.includes('### Plan'));
+
 		// --- parseSections unit cases -------------------------------------------
 		console.log('parseSections units');
 		const lower = parseSections('## a\n### plan\n- MicroHabit: x\n### Other\n- Note: y\n');

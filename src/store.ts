@@ -314,6 +314,20 @@ export class HabitStore {
 		}
 	}
 
+	/**
+	 * Remove a habit section from Habits.md entirely — including its check
+	 * history and "### Plan" data. Irreversible (the registry is a single
+	 * file, so there is nothing to trash); generated Knowledge/Plans notes
+	 * are left in place and can be deleted separately.
+	 */
+	async deleteHabit(id: string): Promise<void> {
+		const all = await this.loadAllSections();
+		const next = all.filter((h) => h.id !== id);
+		if (next.length !== all.length) {
+			await this.saveSections(next);
+		}
+	}
+
 	/** Change a habit's good/bad type (missing field = legacy, defaults 'good'). */
 	async setHabitType(id: string, type: HabitType): Promise<void> {
 		const all = await this.loadAllSections();

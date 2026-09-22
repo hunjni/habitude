@@ -11,6 +11,7 @@ import { shareFromStore } from '../share';
 import { ReviewModal } from './review-modal';
 import { AddHabitModal } from './add-habit-modal';
 import { HabitDetailModal } from './habit-detail';
+import { ConfirmModal } from './confirm-modal';
 import { confirmAndGenerate, type AiConfigProvider } from './ai-flow';
 import {
 	addDays,
@@ -327,6 +328,22 @@ export class ChecklistView extends ItemView {
 							new Notice(t('checklist.habitArchived', { title: habit.title }));
 							void this.render();
 						});
+					}),
+				);
+				menu.addItem((item) =>
+					item.setTitle(t('checklist.deleteHabit')).onClick(() => {
+						new ConfirmModal(
+							this.app,
+							t('checklist.deleteHabit'),
+							t('checklist.deleteHabitConfirm', { title: habit.title }),
+							t('checklist.deleteHabitOk'),
+							() => {
+								void store.deleteHabit(habit.id).then(() => {
+									new Notice(t('checklist.habitDeleted', { title: habit.title }));
+									void this.render();
+								});
+							},
+						).open();
 					}),
 				);
 				menu.showAtMouseEvent(e);
