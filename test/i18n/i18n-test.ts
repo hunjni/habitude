@@ -56,6 +56,14 @@ function testDetection(): void {
 	clearUiLocale();
 	check('language=en-US -> en', getUiLocale() === 'en');
 
+	stubGetLanguage(() => 'zh');
+	clearUiLocale();
+	check('language=zh -> zh', getUiLocale() === 'zh');
+
+	stubGetLanguage(() => 'zh-CN');
+	clearUiLocale();
+	check('language=zh-CN -> zh', getUiLocale() === 'zh');
+
 	stubGetLanguage(() => null);
 	clearUiLocale();
 	check('language=null -> en', getUiLocale() === 'en');
@@ -104,6 +112,17 @@ function testTranslation(): void {
 			'50% · 3/7일 · 🔥 4',
 	);
 	check('ko keeps original share notice', t('share.serverNotReady') === '공유 서버 준비 중');
+
+	setUiLocale('zh');
+	check('zh string', t('checklist.weeklyReview') === '周回顾');
+	check('zh provider label', t('settings.provider.deepseek') === 'DeepSeek');
+	check('zh provider label qwen', t('settings.provider.qwen') === '通义千问（阿里云百炼）');
+	check(
+		'zh multi-var interpolation',
+		t('review.perHabitMeta', { rate: 50, checked: 3, total: 7, streak: 4 }) ===
+			'50% · 3/7 天 · 🔥 4',
+	);
+	check('zh habit type bad', t('checklist.habitTypeBad') === '坏习惯——我想要抵抗它');
 	clearUiLocale();
 }
 
@@ -129,6 +148,7 @@ function testParity(): void {
 	console.log('parity');
 	const enKeys = Object.keys(UI_STRINGS.en).sort();
 	const koKeys = Object.keys(UI_STRINGS.ko).sort();
+	const zhKeys = Object.keys(UI_STRINGS.zh).sort();
 	check('en has keys', enKeys.length > 50, ` (${enKeys.length} keys)`);
 	check(
 		'ko covers every en key',
@@ -140,7 +160,17 @@ function testParity(): void {
 		koKeys.every((k) => k in UI_STRINGS.en),
 		` (extra: ${koKeys.filter((k) => !(k in UI_STRINGS.en)).join(', ') || 'none'})`,
 	);
-	const locales: UiLocale[] = ['en', 'ko'];
+	check(
+		'zh covers every en key',
+		enKeys.every((k) => k in UI_STRINGS.zh),
+		` (missing: ${enKeys.filter((k) => !(k in UI_STRINGS.zh)).join(', ') || 'none'})`,
+	);
+	check(
+		'no zh-only keys',
+		zhKeys.every((k) => k in UI_STRINGS.en),
+		` (extra: ${zhKeys.filter((k) => !(k in UI_STRINGS.en)).join(', ') || 'none'})`,
+	);
+	const locales: UiLocale[] = ['en', 'ko', 'zh'];
 	// Keys intentionally empty in a locale (ko puts the link first in the
 	// setup step, so the prefix is empty there).
 	const emptyOk = new Set(['ko:coach.setupStep1Prefix']);

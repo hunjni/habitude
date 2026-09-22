@@ -5,7 +5,8 @@ import { Notice, Plugin } from 'obsidian';
 import { t } from './i18n';
 import { DEFAULT_SETTINGS, HabitudeSettingTab, type PluginSettings } from './settings';
 import { normalizeCheckmarkColor } from './types';
-import { DEFAULT_COACH_MODEL } from './coach/providers';
+import { DEFAULT_COACH_MODEL, getProvider } from './coach/providers';
+import type { GenerationConfig } from './ai-generator';
 import { HabitStore } from './store';
 import { CHECKLIST_VIEW_TYPE, ChecklistView } from './ui/checklist-view';
 import { COACH_VIEW_TYPE, CoachView } from './ui/coach-view';
@@ -32,6 +33,8 @@ export default class HabitudePlugin extends Plugin {
 				getWeekStart: () => this.settings.weekStart,
 				getCheckmarkColor: () => this.settings.checkmarkColor,
 				getPluginVersion: () => this.manifest.version,
+				getAiConfig: () => this.getAiConfig(),
+				getDataFolder: () => this.settings.dataFolder,
 			}),
 		);
 
@@ -108,6 +111,25 @@ export default class HabitudePlugin extends Plugin {
 			this.store = new HabitStore(this.app, this.settings.dataFolder);
 		}
 		return this.store;
+	}
+
+	/**
+	 * AI generation config from the coach settings, or null when unusable
+	 * (keyed provider without a key, custom provider without a base URL).
+	 * Generation reuses the coach's BYOK configuration — one key, one provider.
+	 */
+	private getAiConfig(): GenerationConfig | null {
+		const s = this.settings;
+		const def = getProvider(s.llmProvider);
+		if (def.needsKey && !s.llmApiKey.trim()) return null;
+		if (def.id === 'custom' && !s.llmBaseUrl.trim()) return null;
+		return {
+			provider: s.llmProvider,
+			apiKey: s.llmApiKey.trim(),
+			baseUrl: s.llmBaseUrl.trim(),
+			model: s.llmModel.trim(),
+			language: s.coachLanguage,
+		};
 	}
 
 	/** Re-render every open checklist and coach view (e.g. after a settings change). */

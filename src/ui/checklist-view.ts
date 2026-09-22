@@ -6,10 +6,13 @@ import { t } from '../i18n';
 import type { HabitStore } from '../store';
 import type { Habit } from '../types';
 import { COACHING_URL } from '../types';
-import { recentKeys, streakFor, weekRateFor } from '../stats';
+import { recentKeys, streakFor, weekRateFor, currentPhase } from '../stats';
 import { historyStripSvg, weeklyBarsSvg, type GraphDay } from '../graphs';
 import { shareFromStore } from '../share';
 import { ReviewModal } from './review-modal';
+import { AddHabitModal } from './add-habit-modal';
+import { HabitDetailModal } from './habit-detail';
+import { confirmAndGenerate, type AiConfigProvider } from './ai-flow';
 import {
 	addDays,
 	dayLabel,
@@ -27,6 +30,10 @@ interface ViewDeps {
 	/** '#rrggbb' color for the ✓ check mark glyph */
 	getCheckmarkColor: () => string;
 	getPluginVersion: () => string;
+	/** AI generation config (provider/key/model); null when not configured. */
+	getAiConfig: AiConfigProvider;
+	/** Vault-relative data folder (Knowledge/ lives under it). */
+	getDataFolder: () => string;
 }
 
 export class ChecklistView extends ItemView {
@@ -86,7 +93,11 @@ export class ChecklistView extends ItemView {
 		};
 		header.createDiv({ cls: 'habitude-spacer' });
 		const reviewBtn = header.createEl('button', { text: t('checklist.weeklyReview'), cls: 'habitude-review-btn' });
-		reviewBtn.onclick = () => new ReviewModal(this.app, store, weekKeys).open();
+		reviewBtn.onclick = () =>
+			new ReviewModal(this.app, store, weekKeys, {
+				getAiConfig: this.deps.getAiConfig,
+				getDataFolder: this.deps.getDataFolder,
+			}).open();
 
 		// Add-habit row
 		const addRow = container.createDiv({ cls: 'habitude-add-row' });
@@ -95,12 +106,30 @@ export class ChecklistView extends ItemView {
 			attr: { placeholder: t('checklist.newHabitPlaceholder'), type: 'text' },
 		});
 		const addBtn = addRow.createEl('button', { text: t('checklist.add'), cls: 'habitude-add-btn' });
-		const doAdd = async () => {
-			const title = input.value.trim();
-			if (!title) return;
-			await store.addHabit(title);
-			new Notice(t('checklist.habitAdded', { title }));
-			void this.render();
+		const doAdd = () => {
+			// The type (good/bad) must be chosen at creation: it flips the
+			// check semantics. The modal pre-fills the title typed so far.
+			new AddHabitModal(this.app, input.value.trim(), (title, type, wantAi) => {
+				input.value = '';
+				void store
+					.addHabit(title, type)
+					.then((habit) => {
+						new Notice(t('checklist.habitAdded', { title: habit.title }));
+						if (wantAi) {
+							// Explicit user confirm happens inside (names the provider).
+							confirmAndGenerate(
+								this.app,
+								this.deps.getAiConfig(),
+								store,
+								this.deps.getDataFolder(),
+								habit,
+								() => void this.render(),
+							);
+						}
+					})
+					.then(() => this.render())
+					.catch(() => new Notice(t('checklist.saveCheckFailed')));
+			}).open();
 		};
 		addBtn.onclick = () => void doAdd();
 		input.onkeydown = (e) => {
@@ -121,64 +150,20 @@ export class ChecklistView extends ItemView {
 			empty.createEl('p', { text: t('checklist.emptyHint') });
 		}
 
-		// Grid
-		const table = container.createEl('table', { cls: 'habitude-grid' });
-		const thead = table.createEl('thead');
-		const headRow = thead.createEl('tr');
-		headRow.createEl('th', { text: '', cls: 'habitude-col-habit' });
-		for (const key of weekKeys) {
-			const th = headRow.createEl('th', { cls: 'habitude-col-day' + (key === todayKey() ? ' habitude-today' : '') });
-			th.createDiv({ text: dayLabel(key), cls: 'habitude-day-name' });
-			th.createDiv({ text: dayNumber(key), cls: 'habitude-day-num' });
-		}
-
+		// Grid: good and bad habits in separate sections (bad section only
+		// appears when there are bad habits). With a single group the layout
+		// is identical to the pre-partition view — no header, no change.
+		const good = habits.filter((h) => h.type !== 'bad');
+		const bad = habits.filter((h) => h.type === 'bad');
+		const showSections = good.length > 0 && bad.length > 0;
 		const metaEls = new Map<string, HTMLElement>();
-		const tbody = table.createEl('tbody');
-		for (const habit of habits) {
-			const tr = tbody.createEl('tr');
-			const nameCell = tr.createEl('td', { cls: 'habitude-habit-cell' });
-			const rate = weekRateFor(habit.id, weekKeys, weekChecks);
-			const metaEl = nameCell.createDiv({
-				text: `··· ${Math.round(rate * 100)}%`,
-				cls: 'habitude-habit-meta',
-			});
-			metaEls.set(habit.id, metaEl);
-			const titleRow = nameCell.createDiv({ cls: 'habitude-title-row' });
-			titleRow.createDiv({ text: habit.title, cls: 'habitude-habit-title' });
-			const menuBtn = titleRow.createEl('button', {
-				text: '\u22EF',
-				cls: 'habitude-menu-btn',
-				attr: { 'aria-label': t('checklist.habitOptions') },
-			});
-			menuBtn.onclick = (e) => {
-				const menu = new Menu();
-				menu.addItem((item) =>
-					item.setTitle(t('checklist.archiveHabit')).onClick(() => {
-						void store.archiveHabit(habit.id).then(() => {
-							new Notice(t('checklist.habitArchived', { title: habit.title }));
-							void this.render();
-						});
-					}),
-				);
-				menu.showAtMouseEvent(e);
-			};
-			for (const key of weekKeys) {
-				const td = tr.createEl('td', {
-					cls: 'habitude-cell' + (key === todayKey() ? ' habitude-today' : ''),
-				});
-				const checked = weekChecks.get(key)?.has(habit.id) ?? false;
-				const btn = td.createEl('button', {
-					text: checked ? '✓' : '',
-					cls: 'habitude-toggle' + (checked ? ' habitude-checked' : ''),
-					attr: { 'aria-label': t('checklist.toggleAria', { title: habit.title, date: key }) },
-				});
-				btn.onclick = () => {
-					void store
-						.setCheck(key, habit.id, habit.title, !checked)
-						.then(() => this.render())
-						.catch(() => new Notice(t('checklist.saveCheckFailed')));
-				};
-			}
+		if (good.length > 0) {
+			if (showSections) container.createEl('h3', { text: t('checklist.sectionGood'), cls: 'habitude-section-title' });
+			this.renderGrid(container, good, weekKeys, weekChecks, metaEls);
+		}
+		if (bad.length > 0) {
+			if (showSections) container.createEl('h3', { text: t('checklist.sectionBad'), cls: 'habitude-section-title' });
+			this.renderGrid(container, bad, weekKeys, weekChecks, metaEls);
 		}
 
 		// Graphs section: populated asynchronously once 60 days of checks load.
@@ -239,8 +224,103 @@ export class ChecklistView extends ItemView {
 		});
 	}
 
-	/** Append one habit's local graphs (30-day strip + 8 weekly bars). */
-	private renderHabitGraphs(
+	/**
+	 * One section's grid (header + habit rows). Bad habits show 🛡 for a
+	 * resisted day (data format identical to a good-habit check, ADR-0003)
+	 * and a stage badge when a plan with a generation date exists (Q6).
+	 */
+	private renderGrid(
+		container: HTMLElement,
+		groupHabits: Habit[],
+		weekKeys: string[],
+		weekChecks: Map<string, Set<string>>,
+		metaEls: Map<string, HTMLElement>,
+	): void {
+		const store = this.deps.getStore();
+		const table = container.createEl('table', { cls: 'habitude-grid' });
+		const headRow = table.createEl('thead').createEl('tr');
+		headRow.createEl('th', { text: '', cls: 'habitude-col-habit' });
+		for (const key of weekKeys) {
+			const th = headRow.createEl('th', { cls: 'habitude-col-day' + (key === todayKey() ? ' habitude-today' : '') });
+			th.createDiv({ text: dayLabel(key), cls: 'habitude-day-name' });
+			th.createDiv({ text: dayNumber(key), cls: 'habitude-day-num' });
+		}
+
+		const tbody = table.createEl('tbody');
+		for (const habit of groupHabits) {
+			const tr = tbody.createEl('tr');
+			const nameCell = tr.createEl('td', { cls: 'habitude-habit-cell' });
+			const rate = weekRateFor(habit.id, weekKeys, weekChecks);
+			const metaEl = nameCell.createDiv({
+				text: `··· ${Math.round(rate * 100)}%`,
+				cls: 'habitude-habit-meta',
+			});
+			metaEls.set(habit.id, metaEl);
+			const titleRow = nameCell.createDiv({ cls: 'habitude-title-row' });
+			titleRow.createDiv({ text: habit.title, cls: 'habitude-habit-title' });
+			const stage = habit.plan ? currentPhase(habit.plan, habit.planGenerated) : null;
+			if (stage) {
+				titleRow.createSpan({
+					text: `D${stage.day} ${stage.phase.name}`,
+					cls: 'habitude-phase-badge',
+					attr: { 'aria-label': t('checklist.phaseBadgeAria', { name: stage.phase.name, day: String(stage.day) }) },
+				});
+			}
+			const menuBtn = titleRow.createEl('button', {
+				text: '\u22EF',
+				cls: 'habitude-menu-btn',
+				attr: { 'aria-label': t('checklist.habitOptions') },
+			});
+			menuBtn.onclick = (e) => {
+				const menu = new Menu();
+				menu.addItem((item) =>
+					item.setTitle(t('checklist.habitDetails')).onClick(() => {
+						new HabitDetailModal(
+							this.app,
+							store,
+							this.deps.getDataFolder(),
+							habit,
+							this.deps.getAiConfig,
+							() => void this.render(),
+						).open();
+					}),
+				);
+				menu.addItem((item) =>
+					item.setTitle(t('checklist.archiveHabit')).onClick(() => {
+						void store.archiveHabit(habit.id).then(() => {
+							new Notice(t('checklist.habitArchived', { title: habit.title }));
+							void this.render();
+						});
+					}),
+				);
+				menu.showAtMouseEvent(e);
+			};
+			const isBad = habit.type === 'bad';
+			for (const key of weekKeys) {
+				const td = tr.createEl('td', {
+					cls: 'habitude-cell' + (key === todayKey() ? ' habitude-today' : ''),
+				});
+				const checked = weekChecks.get(key)?.has(habit.id) ?? false;
+				const btn = td.createEl('button', {
+					text: checked ? (isBad ? '🛡' : '✓') : '',
+					cls: 'habitude-toggle' + (checked ? ' habitude-checked' : ''),
+					attr: {
+						'aria-label': isBad
+							? t('checklist.resistToggleAria', { title: habit.title, date: key })
+							: t('checklist.toggleAria', { title: habit.title, date: key }),
+					},
+				});
+				btn.onclick = () => {
+					void store
+						.setCheck(key, habit.id, habit.title, !checked)
+						.then(() => this.render())
+						.catch(() => new Notice(t('checklist.saveCheckFailed')));
+				};
+			}
+		}
+	}
+
+	/** Append one habit's local graphs (30-day strip + 8 weekly bars). */	private renderHabitGraphs(
 		host: HTMLElement,
 		habit: Habit,
 		checksByDay: Map<string, Set<string>>,

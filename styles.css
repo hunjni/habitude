@@ -99,6 +99,27 @@
 	color: var(--text-muted);
 }
 
+/* Good/bad partition headers (shown only when both groups exist). */
+.habitude-section-title {
+	margin: 14px 0 2px;
+	font-size: 0.95em;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+/* Stage badge: "D3 适应期" next to the habit title (first 21 days of a plan). */
+.habitude-phase-badge {
+	font-size: 0.72em;
+	line-height: 1;
+	padding: 2px 6px;
+	border-radius: 8px;
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	border: 1px solid var(--background-modifier-border);
+	white-space: nowrap;
+}
+
 .habitude-day-name {
 	font-size: 0.75em;
 	color: var(--text-muted);

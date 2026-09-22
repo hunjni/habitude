@@ -39,10 +39,12 @@ export function startOfWeek(dateKey: string, weekStart: 0 | 1): string {
 const DAY_NAMES: Record<UiLocale, string[]> = {
 	en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
 	ko: ['일', '월', '화', '수', '목', '금', '토'],
+	zh: ['日', '一', '二', '三', '四', '五', '六'],
 };
 const MONTH_NAMES: Record<UiLocale, string[]> = {
 	en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
 	ko: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+	zh: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
 };
 
 export function dayLabel(key: string): string {

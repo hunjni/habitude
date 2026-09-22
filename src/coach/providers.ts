@@ -17,6 +17,12 @@ export type LlmProviderId =
 	| 'openrouter'
 	| 'ollama'
 	| 'lmstudio'
+	| 'deepseek'
+	| 'qwen'
+	| 'kimi'
+	| 'zhipu'
+	| 'siliconflow'
+	| 'doubao'
 	| 'custom';
 
 /** Default Gemini model id; also the fallback when migrating legacy settings. */
@@ -31,6 +37,8 @@ export interface ChatMessage {
 }
 
 type RequestFn = typeof requestUrl;
+/** Injectable transport — same shape as Obsidian's requestUrl. */
+export type RequestFnLike = RequestFn;
 
 export class CoachError extends Error {
 	readonly kind: 'auth' | 'quota' | 'network' | 'api';
@@ -82,8 +90,17 @@ function joinApiPath(base: string, path: string): string {
 
 type OpenAiMessage = { role: 'system' | 'user' | 'assistant'; content: string };
 
-/** Shared body builder for OpenAI-compatible chat completion endpoints. */
-function buildOpenAiStyleRequest(args: BuildRequestArgs, extraHeaders: Record<string, string> = {}): BuiltRequest {
+/**
+ * Shared body builder for OpenAI-compatible chat completion endpoints.
+ * `apiPath` defaults to '/v1/chat/completions' (joined by joinApiPath, which
+ * strips a trailing '/v1' from the base); providers whose paths don't follow
+ * the /v1 convention (Zhipu: /api/paas/v4, Doubao: /api/v3) pass their own.
+ */
+function buildOpenAiStyleRequest(
+	args: BuildRequestArgs,
+	extraHeaders: Record<string, string> = {},
+	apiPath = '/v1/chat/completions',
+): BuiltRequest {
 	const messages: OpenAiMessage[] = [
 		{ role: 'system', content: args.systemPrompt },
 		...args.history.map(
@@ -99,7 +116,7 @@ function buildOpenAiStyleRequest(args: BuildRequestArgs, extraHeaders: Record<st
 		headers['Authorization'] = `Bearer ${args.apiKey}`;
 	}
 	return {
-		url: joinApiPath(args.baseUrl, '/v1/chat/completions'),
+		url: joinApiPath(args.baseUrl, apiPath),
 		headers,
 		body: JSON.stringify({ model: args.model, messages, temperature: 0.7, max_tokens: 1024 }),
 	};
@@ -267,6 +284,83 @@ const lmstudioProvider: ProviderDef = {
 	parseResponse: parseOpenAiStyleResponse,
 };
 
+// Domestic (China) providers — all OpenAI-compatible chat completions.
+// Base URLs follow each vendor's documented OpenAI-compatible endpoint.
+
+const deepseekProvider: ProviderDef = {
+	id: 'deepseek',
+	label: 'DeepSeek',
+	needsKey: true,
+	defaultBaseUrl: 'https://api.deepseek.com',
+	defaultModel: 'deepseek-chat',
+	modelPlaceholder: 'deepseek-chat',
+	keyUrl: 'https://platform.deepseek.com/api_keys',
+	buildRequest: (args) => buildOpenAiStyleRequest(args),
+	parseResponse: parseOpenAiStyleResponse,
+};
+
+const qwenProvider: ProviderDef = {
+	id: 'qwen',
+	label: 'Qwen (Alibaba Cloud)',
+	needsKey: true,
+	defaultBaseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+	defaultModel: 'qwen-plus',
+	modelPlaceholder: 'qwen-plus',
+	keyUrl: 'https://bailian.console.aliyun.com/',
+	buildRequest: (args) => buildOpenAiStyleRequest(args),
+	parseResponse: parseOpenAiStyleResponse,
+};
+
+const kimiProvider: ProviderDef = {
+	id: 'kimi',
+	label: 'Kimi (Moonshot)',
+	needsKey: true,
+	defaultBaseUrl: 'https://api.moonshot.cn/v1',
+	defaultModel: 'moonshot-v1-8k',
+	modelPlaceholder: 'moonshot-v1-8k',
+	keyUrl: 'https://platform.moonshot.cn/console/api-keys',
+	buildRequest: (args) => buildOpenAiStyleRequest(args),
+	parseResponse: parseOpenAiStyleResponse,
+};
+
+const zhipuProvider: ProviderDef = {
+	id: 'zhipu',
+	label: 'Zhipu GLM',
+	needsKey: true,
+	defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+	defaultModel: 'glm-4',
+	modelPlaceholder: 'glm-4',
+	keyUrl: 'https://open.bigmodel.cn/usercenter/apikeys',
+	// Zhipu's path has no '/v1' segment: /api/paas/v4/chat/completions.
+	buildRequest: (args) => buildOpenAiStyleRequest(args, {}, '/chat/completions'),
+	parseResponse: parseOpenAiStyleResponse,
+};
+
+const siliconflowProvider: ProviderDef = {
+	id: 'siliconflow',
+	label: 'SiliconFlow',
+	needsKey: true,
+	defaultBaseUrl: 'https://api.siliconflow.cn/v1',
+	defaultModel: 'deepseek-ai/DeepSeek-V3',
+	modelPlaceholder: 'deepseek-ai/DeepSeek-V3',
+	keyUrl: 'https://cloud.siliconflow.cn/account/ak',
+	buildRequest: (args) => buildOpenAiStyleRequest(args),
+	parseResponse: parseOpenAiStyleResponse,
+};
+
+const doubaoProvider: ProviderDef = {
+	id: 'doubao',
+	label: 'Doubao (Volcengine)',
+	needsKey: true,
+	defaultBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+	defaultModel: 'doubao-seed-1-6-flash',
+	modelPlaceholder: 'doubao-seed-1-6-flash',
+	keyUrl: 'https://console.volcengine.com/ark',
+	// Ark's path has no '/v1' segment: /api/v3/chat/completions.
+	buildRequest: (args) => buildOpenAiStyleRequest(args, {}, '/chat/completions'),
+	parseResponse: parseOpenAiStyleResponse,
+};
+
 const customProvider: ProviderDef = {
 	id: 'custom',
 	label: 'Custom',
@@ -286,6 +380,12 @@ const PROVIDERS: Record<LlmProviderId, ProviderDef> = {
 	openrouter: openrouterProvider,
 	ollama: ollamaProvider,
 	lmstudio: lmstudioProvider,
+	deepseek: deepseekProvider,
+	qwen: qwenProvider,
+	kimi: kimiProvider,
+	zhipu: zhipuProvider,
+	siliconflow: siliconflowProvider,
+	doubao: doubaoProvider,
 	custom: customProvider,
 };
 
@@ -296,6 +396,12 @@ export const LLM_PROVIDER_IDS: LlmProviderId[] = [
 	'openrouter',
 	'ollama',
 	'lmstudio',
+	'deepseek',
+	'qwen',
+	'kimi',
+	'zhipu',
+	'siliconflow',
+	'doubao',
 	'custom',
 ];
 

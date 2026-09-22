@@ -54,7 +54,7 @@ const ANTHROPIC_OK = JSON.stringify({
 });
 
 async function testRequestSnapshots(): Promise<void> {
-	console.log('\n[P1] request snapshots (7 providers)');
+	console.log('\n[P1] request snapshots (7 legacy providers)');
 	const base = {
 		apiKey: 'FAKE-KEY-abc123',
 		baseUrl: '',
@@ -241,7 +241,7 @@ async function testErrorClassification(): Promise<void> {
 async function testFallbackAndWindow(): Promise<void> {
 	console.log('\n[P4] fallback + history window');
 	check('unknown provider falls back to gemini', getProvider('bogus').id === 'gemini');
-	check('7 providers registered', LLM_PROVIDER_IDS.length === 7, ` (${LLM_PROVIDER_IDS.join(',')})`);
+	check('13 providers registered', LLM_PROVIDER_IDS.length === 13, ` (${LLM_PROVIDER_IDS.join(',')})`);
 
 	// Sliding window: 30 history blocks → only the last 20 go out (gemini).
 	const { transport, get } = captureTransport(GEMINI_OK);
@@ -263,11 +263,88 @@ async function testFallbackAndWindow(): Promise<void> {
 	check('empty model → provider default', b2.model === 'gpt-4o-mini');
 }
 
+// Domestic (China) OpenAI-compatible providers: URL paths, auth, defaults.
+async function testDomesticProviders(): Promise<void> {
+	console.log('\n[P5] domestic providers (DeepSeek/Qwen/Kimi/Zhipu/SiliconFlow/Doubao)');
+	const base = {
+		apiKey: 'FAKE-KEY-abc123',
+		baseUrl: '',
+		model: '',
+		systemPrompt: 'SYS',
+		history: [{ role: 'user' as const, text: 'hi' }],
+		message: 'hello',
+	};
+	const run = async (provider: LlmProviderId) => {
+		const { transport, get } = captureTransport(OPENAI_OK);
+		const reply = await chatCompletion({ ...base, provider }, transport as never);
+		return { reply, req: get() };
+	};
+
+	// deepseek — base without /v1; the builder appends /v1/chat/completions.
+	{
+		const { reply, req } = await run('deepseek');
+		check('deepseek reply parsed', reply === 'openai reply');
+		check('deepseek url', req.url === 'https://api.deepseek.com/v1/chat/completions', ` (${req.url})`);
+		check('deepseek bearer auth', req.headers['Authorization'] === 'Bearer FAKE-KEY-abc123');
+		const body = JSON.parse(req.body) as { model: string };
+		check('deepseek default model', body.model === 'deepseek-chat');
+	}
+
+	// qwen — DashScope compatible-mode base; '/v1' suffix not duplicated.
+	{
+		const { req } = await run('qwen');
+		check('qwen url', req.url === 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', ` (${req.url})`);
+		const body = JSON.parse(req.body) as { model: string };
+		check('qwen default model', body.model === 'qwen-plus');
+	}
+
+	// kimi — moonshot base with /v1.
+	{
+		const { req } = await run('kimi');
+		check('kimi url', req.url === 'https://api.moonshot.cn/v1/chat/completions', ` (${req.url})`);
+		const body = JSON.parse(req.body) as { model: string };
+		check('kimi default model', body.model === 'moonshot-v1-8k');
+	}
+
+	// zhipu — path has NO '/v1' segment: /api/paas/v4/chat/completions.
+	{
+		const { req } = await run('zhipu');
+		check('zhipu url (no /v1 duplication)', req.url === 'https://open.bigmodel.cn/api/paas/v4/chat/completions', ` (${req.url})`);
+		const body = JSON.parse(req.body) as { model: string };
+		check('zhipu default model', body.model === 'glm-4');
+	}
+
+	// siliconflow.
+	{
+		const { req } = await run('siliconflow');
+		check('siliconflow url', req.url === 'https://api.siliconflow.cn/v1/chat/completions', ` (${req.url})`);
+		const body = JSON.parse(req.body) as { model: string };
+		check('siliconflow default model', body.model === 'deepseek-ai/DeepSeek-V3');
+	}
+
+	// doubao — Ark path has NO '/v1' segment: /api/v3/chat/completions.
+	{
+		const { req } = await run('doubao');
+		check('doubao url (no /v1 duplication)', req.url === 'https://ark.cn-beijing.volces.com/api/v3/chat/completions', ` (${req.url})`);
+		check('doubao bearer auth', req.headers['Authorization'] === 'Bearer FAKE-KEY-abc123');
+		const body = JSON.parse(req.body) as { model: string; messages: Array<{ role: string }> };
+		check('doubao default model', body.model === 'doubao-seed-1-6-flash');
+		check('doubao system first', body.messages[0]?.role === 'system');
+	}
+
+	// All domestic providers parse the OpenAI-style body uniformly.
+	const ids: LlmProviderId[] = ['deepseek', 'qwen', 'kimi', 'zhipu', 'siliconflow', 'doubao'];
+	for (const id of ids) {
+		check(`${id} uniform response parse`, (await run(id)).reply === 'openai reply');
+	}
+}
+
 async function main(): Promise<void> {
 	await testRequestSnapshots();
 	await testAnthropicNormalization();
 	await testErrorClassification();
 	await testFallbackAndWindow();
+	await testDomesticProviders();
 	console.log(failures === 0 ? '\nALL PROVIDER TESTS PASSED' : `\n${failures} FAILURES`);
 	process.exit(failures === 0 ? 0 : 1);
 }

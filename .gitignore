@@ -7,3 +7,8 @@ test/coach/dist/
 test/settings/dist/
 test/share/dist/
 test/i18n/dist/
+test/store/dist/
+test/ai-generator/dist/
+test/knowledge/dist/
+test/urge/dist/
+.workbuddy/

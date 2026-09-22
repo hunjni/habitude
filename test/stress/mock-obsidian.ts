@@ -10,11 +10,14 @@ export function normalizePath(p: string): string {
 
 export class TFile {
 	public stat: { mtime: number; ctime: number; size: number };
+	/** File name with extension, like the real TFile. */
+	public name: string;
 	constructor(
 		public path: string,
 		public basename: string,
 		mtime = 0,
 	) {
+		this.name = path.split('/').pop() ?? path;
 		this.stat = { mtime, ctime: mtime, size: 0 };
 	}
 }
@@ -97,6 +100,36 @@ class MockVault {
 		fs.mkdirSync(this.abs(p), { recursive: true });
 	}
 
+	/** Move to (system) trash — backed by a real unlink, tests use temp dirs. */
+	async trash(file: TFile, _system = true): Promise<void> {
+		fs.unlinkSync(this.abs(file.path));
+		this.mtimes.delete(normalizePath(file.path));
+	}
+
+	/** All markdown files under the vault root, like the real vault API. */
+	getMarkdownFiles(): TFile[] {
+		const out: TFile[] = [];
+		const walk = (dir: string): void => {
+			let entries: fs.Dirent[] = [];
+			try {
+				entries = fs.readdirSync(dir, { withFileTypes: true });
+			} catch {
+				return;
+			}
+			for (const e of entries) {
+				const full = path.join(dir, e.name);
+				if (e.isDirectory()) walk(full);
+				else if (e.isFile() && e.name.endsWith('.md')) {
+					// Vault-relative path, like the real API (TFile.path has no root prefix).
+					const rel = path.relative(this.root, full).replace(/\\/g, '/');
+					out.push(this.makeFile(rel));
+				}
+			}
+		};
+		walk(this.root);
+		return out;
+	}
+
 	on(_event: string, _cb: (...args: unknown[]) => void): { unload: () => void } {
 		return { unload: () => undefined };
 	}
@@ -104,8 +137,10 @@ class MockVault {
 
 export class App {
 	vault: MockVault;
+	fileManager: { trashFile: (file: TFile) => Promise<void> };
 	constructor(vaultRoot: string) {
 		this.vault = new MockVault(vaultRoot);
+		this.fileManager = { trashFile: (file) => this.vault.trash(file, true) };
 	}
 }
 

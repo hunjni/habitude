@@ -18,7 +18,11 @@
 		"test:share": "esbuild test/share/share-test.ts --bundle --platform=node --alias:obsidian=./test/stress/mock-obsidian.ts --outfile=test/share/dist/share-test.cjs --format=cjs --log-level=warning && node test/share/dist/share-test.cjs",
 		"test:i18n": "esbuild test/i18n/i18n-test.ts --bundle --platform=node --alias:obsidian=./test/stress/mock-obsidian.ts --outfile=test/i18n/dist/i18n-test.cjs --format=cjs --log-level=warning && node test/i18n/dist/i18n-test.cjs",
 		"test:providers": "esbuild test/coach/providers-test.ts --bundle --platform=node --alias:obsidian=./test/stress/mock-obsidian.ts --outfile=test/coach/dist/providers-test.cjs --format=cjs --log-level=warning && node test/coach/dist/providers-test.cjs",
-		"test:unit": "npm run test:coach && npm run test:edge && npm run test:settings && npm run test:checkmark && npm run test:migration && npm run test:share && npm run test:i18n && npm run test:providers"
+		"test:roundtrip": "esbuild test/store/roundtrip-test.ts --bundle --platform=node --alias:obsidian=./test/stress/mock-obsidian.ts --outfile=test/store/dist/roundtrip-test.cjs --format=cjs --log-level=warning && node test/store/dist/roundtrip-test.cjs",
+		"test:aigen": "esbuild test/ai-generator/ai-generator-test.ts --bundle --platform=node --alias:obsidian=./test/stress/mock-obsidian.ts --outfile=test/ai-generator/dist/ai-generator-test.cjs --format=cjs --log-level=warning && node test/ai-generator/dist/ai-generator-test.cjs",
+		"test:knowledge": "esbuild test/knowledge/knowledge-test.ts --bundle --platform=node --alias:obsidian=./test/stress/mock-obsidian.ts --outfile=test/knowledge/dist/knowledge-test.cjs --format=cjs --log-level=warning && node test/knowledge/dist/knowledge-test.cjs",
+		"test:urge": "esbuild test/urge/urge-test.ts --bundle --platform=node --alias:obsidian=./test/stress/mock-obsidian.ts --outfile=test/urge/dist/urge-test.cjs --format=cjs --log-level=warning && node test/urge/dist/urge-test.cjs",
+		"test:unit": "npm run test:coach && npm run test:edge && npm run test:settings && npm run test:checkmark && npm run test:migration && npm run test:share && npm run test:i18n && npm run test:providers && npm run test:roundtrip && npm run test:aigen && npm run test:knowledge && npm run test:urge"
 	},
 	"keywords": [],
 	"license": "0-BSD",

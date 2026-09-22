@@ -7,6 +7,9 @@
 import type { LlmProviderId } from './coach/providers';
 import type { CoachLanguage } from './coach/prompt';
 
+/** 'good' = build the habit (check = done); 'bad' = resist it (check = resisted). */
+export type HabitType = 'good' | 'bad';
+
 export interface Habit {
 	/** URL-safe unique id, also used as the section heading in Habits.md */
 	id: string;
@@ -16,6 +19,46 @@ export interface Habit {
 	/** 'daily' for now; weekly/custom schedules are a later stage */
 	schedule: 'daily';
 	archived: boolean;
+	/** Defaults to 'good' when the field is missing (legacy sections). */
+	type: HabitType;
+	/**
+	 * AI-generated execution plan (the "### Plan" subsection in Habits.md).
+	 * Null = no plan yet. Users may hand-edit the subsection at any time.
+	 */
+	plan: HabitPlan | null;
+	/**
+	 * Raw "Notes" field value: manually linked knowledge notes as
+	 * comma-separated wikilinks. Optional (absent = no manual links yet).
+	 */
+	notes?: string;
+	/**
+	 * YYYY-MM-DD when the current plan was last written (AI generation or
+	 * manual save). Anchor for stage-badge computation (Q6). Absent for
+	 * hand-written plans without the field — no badge in that case.
+	 */
+	planGenerated?: string;
+}
+
+/** One phase of the execution plan timeline (see CONTEXT.md "Phase"). */
+export interface HabitPhase {
+	/** Display name, e.g. "适应期" */
+	name: string;
+	/** Day range, e.g. "1-7" */
+	days: string;
+	focus: string;
+}
+
+/** Structured habit recipe stored as the "### Plan" subsection (ADR-0002). */
+export interface HabitPlan {
+	/** Smallest executable action ("read 2 pages", not "read daily"). */
+	microHabit: string;
+	/** Time / place / event / emotion trigger cue. */
+	triggerCue: string;
+	executionTime: string;
+	location: string;
+	environmentDesign: string;
+	immediateReward: string;
+	phases: HabitPhase[];
 }
 
 export interface HabitStats {

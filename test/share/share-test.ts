@@ -40,7 +40,7 @@ function check(name: string, cond: boolean, extra = ''): void {
 }
 
 function makeHabit(id: string, title: string): Habit {
-	return { id, title, created: todayKey(), schedule: 'daily', archived: false };
+	return { id, title, created: todayKey(), schedule: 'daily', archived: false, type: 'good', plan: null };
 }
 
 /** Check-set where the given habit was checked on the given day offsets (0 = today). */

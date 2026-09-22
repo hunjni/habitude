@@ -114,6 +114,7 @@ export class HabitudeSettingTab extends PluginSettingTab {
 						auto: t('settings.coachLanguage.auto'),
 						en: t('settings.coachLanguage.english'),
 						ko: t('settings.coachLanguage.korean'),
+						zh: t('settings.coachLanguage.chinese'),
 					},
 					defaultValue: DEFAULT_SETTINGS.coachLanguage,
 				},
@@ -154,7 +155,8 @@ export class HabitudeSettingTab extends PluginSettingTab {
 		} else if (key === 'llmBaseUrl') {
 			this.plugin.settings.llmBaseUrl = typeof value === 'string' ? value.trim() : '';
 		} else if (key === 'coachLanguage') {
-			this.plugin.settings.coachLanguage = value === 'ko' ? 'ko' : value === 'en' ? 'en' : 'auto';
+			this.plugin.settings.coachLanguage =
+				value === 'ko' ? 'ko' : value === 'en' ? 'en' : value === 'zh' ? 'zh' : 'auto';
 		}
 		await this.plugin.saveSettings();
 	}

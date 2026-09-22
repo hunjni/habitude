@@ -8,7 +8,7 @@
 
 import { renderContextBlock, type TwinLiteContext } from './context';
 
-export type CoachLanguage = 'auto' | 'en' | 'ko';
+export type CoachLanguage = 'auto' | 'en' | 'ko' | 'zh';
 
 export const COACH_PERSONA = `You are the Habitude Coach, a personal habit coach who lives inside the user's Obsidian vault.
 
@@ -33,7 +33,9 @@ export function buildSystemPrompt(ctx: TwinLiteContext, language: CoachLanguage)
 	const langNote =
 		language === 'auto'
 			? ''
-			: `\n\n## Language override\nAlways respond in ${language === 'ko' ? 'Korean' : 'English'}, regardless of the user's language.`;
+			: `\n\n## Language override\nAlways respond in ${
+					language === 'ko' ? 'Korean' : language === 'zh' ? 'Chinese' : 'English'
+				}, regardless of the user's language.`;
 	return `${COACH_PERSONA}${langNote}\n\n## The user's habit data (today's snapshot)\n${renderContextBlock(ctx)}`;
 }
 
