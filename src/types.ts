@@ -70,9 +70,6 @@ export interface HabitStats {
 	weekRate: number;
 }
 
-/** The funnel bridge: a plain external link. Never an API client. */
-export const COACHING_URL = 'https://habitude.ai';
-
 export interface PluginSettings {
 	/** vault-relative folder that holds Habits.md and Log/ */
 	dataFolder: string;

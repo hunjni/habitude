@@ -35,6 +35,7 @@ export default class HabitudePlugin extends Plugin {
 				getPluginVersion: () => this.manifest.version,
 				getAiConfig: () => this.getAiConfig(),
 				getDataFolder: () => this.settings.dataFolder,
+				openCoach: () => void this.activateCoachView(),
 			}),
 		);
 

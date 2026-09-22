@@ -5,7 +5,6 @@ import { ItemView, Menu, Notice, WorkspaceLeaf } from 'obsidian';
 import { t } from '../i18n';
 import type { HabitStore } from '../store';
 import type { Habit } from '../types';
-import { COACHING_URL } from '../types';
 import { recentKeys, streakFor, weekRateFor, currentPhase } from '../stats';
 import { historyStripSvg, weeklyBarsSvg, type GraphDay } from '../graphs';
 import { shareFromStore } from '../share';
@@ -34,6 +33,8 @@ interface ViewDeps {
 	getAiConfig: AiConfigProvider;
 	/** Vault-relative data folder (Knowledge/ lives under it). */
 	getDataFolder: () => string;
+	/** Open the built-in BYOK AI coach view (the former funnel link). */
+	openCoach: () => void;
 }
 
 export class ChecklistView extends ItemView {
@@ -222,10 +223,12 @@ export class ChecklistView extends ItemView {
 			}
 		})();
 
-		// Footer: the only funnel bridge — a plain external link. No API, no token.
+		// Footer: opens the built-in AI coach (BYOK — the user's own
+		// provider/key/model). The upstream funnel link to habitude.ai was
+		// replaced: it advertised a commercial service this fork doesn't use.
 		const footer = container.createDiv({ cls: 'habitude-footer' });
 		const coachBtn = footer.createEl('button', { text: t('checklist.getCoaching'), cls: 'habitude-coach-btn' });
-		coachBtn.onclick = () => window.open(COACHING_URL, '_blank', 'noopener');
+		coachBtn.onclick = () => this.deps.openCoach();
 		footer.createEl('p', {
 			text: t('checklist.footnote'),
 			cls: 'habitude-footnote',
