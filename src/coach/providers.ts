@@ -23,6 +23,7 @@ export type LlmProviderId =
 	| 'zhipu'
 	| 'siliconflow'
 	| 'doubao'
+	| 'opencodego'
 	| 'custom';
 
 /** Default Gemini model id; also the fallback when migrating legacy settings. */
@@ -116,6 +117,28 @@ function joinApiPath(base: string, path: string): string {
 type OpenAiMessage = { role: 'system' | 'user' | 'assistant'; content: string };
 
 /**
+ * OpenCode Go requires a stable session id header on every request (missing
+ * header is rejected with 400 MissingSessionID). Lazily generate one UUID per
+ * app run and reuse it — mirrors bz's ticket-174 implementation.
+ */
+let opencodeSession: string | null = null;
+function opencodeSessionId(): string {
+	if (!opencodeSession) {
+		// window per the community linter (popout-window compatibility).
+		const w = typeof window === 'undefined' ? undefined : (window as unknown as { crypto?: { randomUUID?: () => string } });
+		const c = w?.crypto;
+		opencodeSession =
+			c && typeof c.randomUUID === 'function'
+				? c.randomUUID()
+				: 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (ch) => {
+						const r = (Math.random() * 16) | 0;
+						return ((ch === 'x' ? r : (r & 0x3) | 0x8).toString(16));
+					});
+	}
+	return opencodeSession;
+}
+
+/**
  * Shared body builder for OpenAI-compatible chat completion endpoints.
  * `apiPath` defaults to '/v1/chat/completions' (joined by joinApiPath, which
  * strips a trailing '/v1' from the base); providers whose paths don't follow
@@ -173,10 +196,13 @@ function parseOpenAiModelList(raw: string): string[] {
 }
 
 /** OpenAI-compatible GET {base}{apiPath} with optional Bearer auth. */
-function openAiModelList(apiPath = '/v1/models') {
+function openAiModelList(apiPath = '/v1/models', extraHeaders: Record<string, string> = {}) {
 	return (args: ModelListArgs): ModelsRequestSpec => ({
 		url: joinApiPath(args.baseUrl, apiPath),
-		headers: args.apiKey ? { Authorization: `Bearer ${args.apiKey}` } : {},
+		headers: {
+			...(args.apiKey ? { Authorization: `Bearer ${args.apiKey}` } : {}),
+			...extraHeaders,
+		},
 		parse: parseOpenAiModelList,
 	});
 }
@@ -475,6 +501,26 @@ const doubaoProvider: ProviderDef = {
 	parseResponse: parseOpenAiStyleResponse,
 };
 
+/**
+ * OpenCode Go (opencode.ai Zen Go): OpenAI-compatible endpoint that requires
+ * an extra x-opencode-session header on every request, /models included.
+ * Base already ends in /v1, so the default '/v1/chat/completions' path join
+ * applies (joinApiPath strips the base's trailing '/v1' first).
+ */
+const opencodeGoProvider: ProviderDef = {
+	id: 'opencodego',
+	label: 'OpenCode Go',
+	needsKey: true,
+	defaultBaseUrl: 'https://opencode.ai/zen/go/v1',
+	defaultModel: 'deepseek-v4-flash',
+	models: ['deepseek-v4-flash'],
+	modelPlaceholder: 'deepseek-v4-flash',
+	keyUrl: 'https://opencode.ai',
+	buildRequest: (args) =>
+		buildOpenAiStyleRequest(args, { 'x-opencode-session': opencodeSessionId() }),
+	parseResponse: parseOpenAiStyleResponse,
+};
+
 const customProvider: ProviderDef = {
 	id: 'custom',
 	label: 'Custom',
@@ -501,6 +547,7 @@ const PROVIDERS: Record<LlmProviderId, ProviderDef> = {
 	zhipu: zhipuProvider,
 	siliconflow: siliconflowProvider,
 	doubao: doubaoProvider,
+	opencodego: opencodeGoProvider,
 	custom: customProvider,
 };
 
@@ -512,6 +559,9 @@ PROVIDERS.anthropic.listModels = anthropicModelList;
 PROVIDERS.ollama.listModels = ollamaModelList;
 PROVIDERS.zhipu.listModels = openAiModelList('/models');
 PROVIDERS.doubao.listModels = openAiModelList('/models');
+PROVIDERS.opencodego.listModels = openAiModelList('/v1/models', {
+	'x-opencode-session': opencodeSessionId(),
+});
 for (const id of ['openai', 'openrouter', 'lmstudio', 'deepseek', 'qwen', 'kimi', 'siliconflow', 'custom'] as LlmProviderId[]) {
 	PROVIDERS[id].listModels = openAiModelList();
 }
@@ -529,6 +579,7 @@ export const LLM_PROVIDER_IDS: LlmProviderId[] = [
 	'zhipu',
 	'siliconflow',
 	'doubao',
+	'opencodego',
 	'custom',
 ];
 

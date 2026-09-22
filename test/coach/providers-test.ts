@@ -241,7 +241,7 @@ async function testErrorClassification(): Promise<void> {
 async function testFallbackAndWindow(): Promise<void> {
 	console.log('\n[P4] fallback + history window');
 	check('unknown provider falls back to gemini', getProvider('bogus').id === 'gemini');
-	check('13 providers registered', LLM_PROVIDER_IDS.length === 13, ` (${LLM_PROVIDER_IDS.join(',')})`);
+	check('14 providers registered', LLM_PROVIDER_IDS.length === 14, ` (${LLM_PROVIDER_IDS.join(',')})`);
 
 	// Sliding window: 30 history blocks → only the last 20 go out (gemini).
 	const { transport, get } = captureTransport(GEMINI_OK);
@@ -332,8 +332,20 @@ async function testDomesticProviders(): Promise<void> {
 		check('doubao system first', body.messages[0]?.role === 'system');
 	}
 
+	// opencode-go — base ends in /v1; join must not duplicate it, and the
+	// endpoint requires the x-opencode-session header on every request.
+	{
+		const { reply, req } = await run('opencodego');
+		check('opencodego reply parsed', reply === 'openai reply');
+		check('opencodego url (no /v1 duplication)', req.url === 'https://opencode.ai/zen/go/v1/chat/completions', ` (${req.url})`);
+		check('opencodego bearer auth', req.headers['Authorization'] === 'Bearer FAKE-KEY-abc123');
+		check('opencodego session header present', typeof req.headers['x-opencode-session'] === 'string' && req.headers['x-opencode-session'].length >= 32);
+		const body = JSON.parse(req.body) as { model: string };
+		check('opencodego default model', body.model === 'deepseek-v4-flash');
+	}
+
 	// All domestic providers parse the OpenAI-style body uniformly.
-	const ids: LlmProviderId[] = ['deepseek', 'qwen', 'kimi', 'zhipu', 'siliconflow', 'doubao'];
+	const ids: LlmProviderId[] = ['deepseek', 'qwen', 'kimi', 'zhipu', 'siliconflow', 'doubao', 'opencodego'];
 	for (const id of ids) {
 		check(`${id} uniform response parse`, (await run(id)).reply === 'openai reply');
 	}

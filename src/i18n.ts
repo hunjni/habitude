@@ -56,6 +56,7 @@ const en: Dict = {
 	'settings.provider.zhipu': 'Zhipu GLM',
 	'settings.provider.siliconflow': 'SiliconFlow',
 	'settings.provider.doubao': 'Doubao (Volcengine)',
+	'settings.provider.opencodego': 'OpenCode Go',
 	'settings.provider.custom': 'Custom (OpenAI-compatible)',
 	'settings.llmKey.name': 'API key (AI coach, optional)',
 	'settings.llmKey.desc':
@@ -294,6 +295,7 @@ const ko: Dict = {
 	'settings.provider.zhipu': '즈푸 GLM',
 	'settings.provider.siliconflow': '실리콘플로우',
 	'settings.provider.doubao': '더바오 (볼케이노 엔진)',
+	'settings.provider.opencodego': 'OpenCode Go',
 	'settings.provider.custom': '사용자 지정 (OpenAI 호환)',
 	'settings.llmKey.name': 'API 키 (AI 코치, 선택)',
 	'settings.llmKey.desc':
@@ -526,6 +528,7 @@ const zh: Dict = {
 	'settings.provider.zhipu': '智谱 GLM',
 	'settings.provider.siliconflow': '硅基流动 SiliconFlow',
 	'settings.provider.doubao': '豆包（火山方舟）',
+	'settings.provider.opencodego': 'OpenCode Go',
 	'settings.provider.custom': '自定义（OpenAI 兼容）',
 	'settings.llmKey.name': 'API 密钥（AI 教练，可选）',
 	'settings.llmKey.desc':
